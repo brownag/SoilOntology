@@ -9,6 +9,8 @@ output: html_document
 knitr::opts_chunk$set(fig.retina = 3, warning = FALSE, message = FALSE)
 ```
 
+## Get the data
+
 ```{r}
 library(aqp)
 library(soilDB)
@@ -16,38 +18,49 @@ library(ggplot2)
 library(magrittr)
 
 # get 18 and 22A MLRA overlap KSSL pedon data
-kssl <- fetchKSSL(mlra = c("18","22A"),
+if (!file.exists("kssl1822a.rda")) {
+  kssl <- fetchKSSL(mlra = c("18","22A"),
                   returnMorphologicData = TRUE,
                   returnGeochemicalData = TRUE,
-                  simplifyColors = TRUE)
-
+                  simplifyColors = TRUE,
+                  progress = FALSE)
+  save(kssl, file = "kssl1822a.rda")
+} else {
+  load("kssl1822a.rda")
+}
+```
+```{r}
 # identify soils with argillic horizon
 argi <- profileApply(kssl$SPC, function(p) data.frame(id=profile_id(p), t(getArgillicBounds(p))), 
                      frameify = TRUE, column.names = c("pedon_key", "argi_top","argi_bot"))
 
 argisub <- subset(kssl$SPC, profile_id(kssl$SPC) %in% argi$pedon_key[complete.cases(argi)])
+```
 
+### Data cleaning
+
+```{r}
 # filter for valid geometry
 argisub <- subset(argisub, !checkHzDepthLogic(argisub)$overlapOrGap)
 hzidname(argisub) <- "labsampnum"
 
 length(argisub)
 
-# truncate to [0,100]
-argisub <- trunc(argisub, 0, 100)
+# truncate to [MSS,100]
+argisub <- glomApply(argisub, 
+                     function(p) return(c(getMineralSoilSurfaceDepth(p), 100)),
+                     truncate = TRUE)
+```
 
-## OC
+## Calculate splines
+
+```{r}
+## OC slab
 ## 
-dataslab <- slab(argisub, ~ oc + clay + db_od)
+dataslab <- slab(argisub, ~ oc + clay + db_od + frags)
 ocslab <- subset(dataslab, variable == "oc")
 depths(ocslab) <- all.profiles ~ top + bottom
 hzdesgnname(ocslab) <- "hzID"
-
-## CLAY
-## 
-clayslab <- subset(dataslab, variable == "clay")
-depths(clayslab) <- all.profiles ~ top + bottom
-hzdesgnname(clayslab) <- "hzID"
 
 ## Db slab
 ## 
@@ -55,88 +68,203 @@ dbslab <- subset(dataslab, variable == "db_od")
 depths(dbslab) <- all.profiles ~ top + bottom
 hzdesgnname(dbslab) <- "hzID"
 
+## Coarse frag slab
+## 
+fragslab <- subset(dataslab, variable == "frags")
+depths(fragslab) <- all.profiles ~ top + bottom
+hzdesgnname(fragslab) <- "hzID"
+
+## clay slab
+## 
+clayslab <- subset(dataslab, variable == "clay")
+depths(clayslab) <- all.profiles ~ top + bottom
+hzdesgnname(clayslab) <- "hzID"
+
+
 # using default mpspline2 lambda 
 clayspline <- spc2mpspline(clayslab, "p.q50", lam = 0.1)
 ocspline <- spc2mpspline(ocslab, "p.q50", lam = 0.1)
 dbspline <- spc2mpspline(dbslab, "p.q50", lam = 0.1)
+fragspline <- spc2mpspline(fragslab, "p.q50", lam = 0.1)
+
+# combine/rename splines and original data
+ocspline$spline_q50_oc <- ocspline$p.q50_spline
+ocspline$spline_q50_db13 <- dbspline$p.q50_spline
+ocspline$spline_q50_clay <- clayspline$p.q50_spline
+ocspline$spline_q50_frags <- fragspline$p.q50_spline
+ocspline$q50_db13 <- dbspline$p.q50
+ocspline$q50_clay <- clayspline$p.q50
+ocspline$q50_frags <- fragspline$p.q50
 ```
+
+### Inspect median splines
 
 ```{r, echo=FALSE}
 ggplot(horizons(ocspline)) + 
   scale_y_reverse() +
   labs(title = "Spline + 1cm Slab Median Organic Carbon Content\nMLRA 18 & 22A Soils with Argillic Horizons",
        x = "Organic Carbon [% by mass]", y = "Depth [cm]") +
-  geom_path(aes(x = p.q50_spline, y = top), linetype = 1, lwd = 1.5) +
+  geom_path(aes(x = spline_q50_oc, y = top), linetype = 1, lwd = 1.5) +
   geom_path(aes(x = p.q50, y = top), linetype = 3) +
-  theme_bw() 
+  theme_bw() + expand_limits(x=c(0,3))
 
-ggplot(horizons(clayspline)) + 
-  scale_y_reverse() +
-  labs(title = "Spline + 1cm Slab Median Total Clay Content\nMLRA 18 & 22A Soils with Argillic Horizons",
-       x = "Total Clay Content [%]", y = "Depth [cm]") +
-  geom_path(aes(x = p.q50_spline, y = top), linetype = 1, lwd = 1.5) +
-  geom_path(aes(x = p.q50, y = top), linetype = 3) + 
-  theme_bw() 
-
-ggplot(horizons(dbspline)) + 
+ggplot(horizons(ocspline)) + 
   scale_y_reverse() +
   labs(title = "Spline + 1cm Slab Median Field-capacity Bulk Density\nMLRA 18 & 22A Soils with Argillic Horizons",
        x = "Bulk Density, 0.33 kPa, [g/cc]", y = "Depth [cm]") +
-  geom_path(aes(x = p.q50_spline, y = top), linetype = 1, lwd = 1.5) +
-  geom_path(aes(x = p.q50, y = top), linetype = 3) +
-  theme_bw() + expand_limits(x = c(1.15, 1.4))
+  geom_path(aes(x = spline_q50_db13, y = top), linetype = 1, lwd = 1.5) +
+  geom_path(aes(x = q50_db13, y = top), linetype = 3) +
+  theme_bw() + expand_limits(x = c(1.00, 1.6))
+
+ggplot(horizons(ocspline)) + 
+  scale_y_reverse() +
+  labs(title = "Spline + 1cm Slab Median Fragment Volume\nMLRA 18 & 22A Soils with Argillic Horizons",
+       x = "Estimated Fragment Volume [%]", y = "Depth [cm]") +
+  geom_path(aes(x = spline_q50_frags, y = top), linetype = 1, lwd = 1.5) +
+  geom_path(aes(x = q50_frags, y = top), linetype = 3) +
+  theme_bw() + expand_limits(x = c(0, 35))
+
+ggplot(horizons(ocspline)) + 
+  scale_y_reverse() +
+  labs(title = "Spline + 1cm Slab Median Total Clay Content\nMLRA 18 & 22A Soils with Argillic Horizons",
+       x = "Total Clay Content [%]", y = "Depth [cm]") +
+  geom_path(aes(x = spline_q50_clay, y = top), linetype = 1, lwd = 1.5) +
+  geom_path(aes(x = q50_clay, y = top), linetype = 3) + 
+  theme_bw() + expand_limits(x = c(0, 35))
 ```
 
+### Calculate organic carbon for each 1cm slice
+
+Carbon stock is the organic carbon content multiplied by bulk density in $kg/m^3$ multiplied by layer thickness ($m$)
+
+When accounting for fragments, we assume the median rock fragment volume does not store carbon.
+
 ```{r}
-ocspline$spline_q50_db13 <- dbspline$p.q50_spline
-ocspline$spline_q50_clay <- clayspline$p.q50_spline
+medianstock <- (ocspline$p.q50_spline / 100) * (( ocspline$spline_q50_db13 * 1e6) / 1000) * (1 / 100)
+medianstock_withfrags <- medianstock * (1 - (ocspline$spline_q50_frags / 100))
+```
 
-# calculate organic carbon in kg/m^2 
-#  carbon content multipled by bulk density in kg/m^3 multiplied by layer thickness in meters
-medianstock <- sum(ocspline$p.q50_spline / 100 * ocspline$spline_q50_db13 * 1000) / 100
+```{r, echo=F}
+ocspline$medianstock <- medianstock
+ocspline$medianstock_withfrags <- medianstock_withfrags
 
-# convert to Mg/m^3 for taxonomic eval (> or < 12)
-medianstock # in general, soils with argillic horizons in 18+22A are not Humults
+ggplot(horizons(ocspline)) + 
+  scale_y_reverse() +
+  labs(title = "1 cm Spline Carbon Stocks\nMLRA 18 & 22A Soils with Argillic Horizons",
+       x = "1 cm Depth Carbon Stocks [kg/m^2]", y = "Depth [cm]") +
+  geom_path(aes(x = medianstock, y = top, color="nofrags"), linetype = 1, lwd = 1.5) +
+  geom_path(aes(x = medianstock_withfrags, y = top, color="frags"), linetype = 1, lwd = 1.5) +
+  scale_color_manual(name = "", values = c(nofrags = "blue", frags = "red")) +
+  expand_limits(x = c(0,0.5)) + theme_bw() 
 
-# 152 profiles have zero missing carbon within the estimated soil depth
+ggplot(horizons(ocspline)) + 
+  scale_y_reverse() +
+  labs(title = "Cumulative Median 1 cm Spline Carbon Stocks\nMLRA 18 & 22A Soils with Argillic Horizons",
+       x = "Cumulative Carbon Stocks [kg/m^2]", y = "Depth [cm]") +
+  geom_path(aes(x = cumsum(medianstock), y = top, color="nofrags"), linetype = 1, lwd = 1.5) +
+  geom_path(aes(x = cumsum(medianstock_withfrags), y = top, color="frags"), linetype = 1, lwd = 1.5) +
+  geom_vline(aes(xintercept = 12), linetype = 2, lwd = 1) +
+  scale_color_manual(name = "", values = c(nofrags = "blue", frags = "red")) +
+  expand_limits(x=c(0,15)) + theme_bw() 
+```
+
+Compare to $12 kg/m^2$ over $[MSS, 100]$ for taxonomic evaluation.
+
+```{r}
+sum(medianstock) 
+
+sum(medianstock_withfrags) 
+```
+
+The median spline soil with an argillic horizon just barely makes the carbon requirement for Humults near 90cm depth.
+When we account for rock fragments not having the same bulk characteristics as soil material, we find the threshold is not met. This is consistent with expectation about prevalence of Humults.
+
+Soils in these landscapes may have a bedrock contact within 100cm, or may have more than the average amount of fragments. Those factors alone likely preclude the $12 kg/m^2$ criterion in many cases. Further, here are no parallel criteria in the Alfisols, Mollisols or Inceptisols, so this is the not the only thing determining whether you are a Humult (base saturation, carbon in upper argillic), per se.
+
+That said, many vegetative communities of the higher elevation portions of MLRA 18 and warmer portions of MLRA 22A are very productive and have high potential to store carbon in the soil profile.  A _single_ spline to represent _all_ of the conditions that affect carbon accumulation in these soils for two MLRAs is naive, but this demo shows how one can systematically build such a thing for a target area/soil type. Perhaps this broad analysis could be used to further focus on the common soil forming factors that lead to high carbon stocks in the upper meter.
+
+### Zooming in on individual profiles...
+
+A relatively large number of profiles have complete organic carbon data within the estimated soil depth.
+
+```{r}
 table(floor(evalMissingData(argisub, "oc", name = "hzn_desgn")))
+```
 
-# in contrast, only 29 profiles have bulk density 0.33 kPa across same depth
+Fewer profiles have complete bulk density 0.33 kPa across same depth.
+
+```{r}
 table(floor(evalMissingData(argisub, "db_13b", name = "hzn_desgn")))
+```
 
-# keep the ones with full carbon data in 0-100cm interval
+### Simple gap filling in bulk density by horizon designation
+
+ - Take `median` of known 0.33 kPa bulk densities for horizon designations _starting with_ A, B, or C.
+ 
+ - Then assign sequentially to layers missing bulk density whose designations _contain_ A, B or C, respectively.
+
+```{r}
+nadb.idx <- is.na(argisub$db_13b)
+hzd <- argisub$hzn_desgn
+dbin <- argisub$db_13b
+
+# fill in missing bulk density with median based on horizon designation
+argisub$db_13b[grepl("A", hzd) & nadb.idx] <- median(dbin[grepl("^A", hzd)], na.rm = TRUE) # 1.19 g/cc
+argisub$db_13b[grepl("B", hzd) & nadb.idx] <- median(dbin[grepl("^B", hzd)], na.rm = TRUE) # 1.35 g/cc
+argisub$db_13b[grepl("C", hzd) & nadb.idx] <- median(dbin[grepl("^C", hzd)], na.rm = TRUE) # 1.51 g/cc
+
+# treat missing (NA) frags as zero
+argisub$frags[is.na(argisub$frags)] <- 0
+```
+
+### Filter to target interval
+
+Keep the ones with full organic carbon data in 0 - 100 cm interval.
+
+```{r}
 argisub <- subset(argisub, as.logical(floor(evalMissingData(trunc(argisub, 0, 100), "oc", name = "hzn_desgn"))))
 ```
 
-# Simple gap filling in bulk density
+### Calculate horizon-level organic carbon in $kg/m^2$ (per layer)
 
-```{r}
-argisub$db_13b[grepl("O", argisub$hzn_desgn) & is.na(argisub$db_13b)] <- 0.3
-argisub$db_13b[grepl("A", argisub$hzn_desgn) & is.na(argisub$db_13b)] <- 1.2
-argisub$db_13b[grepl("B", argisub$hzn_desgn) & is.na(argisub$db_13b)] <- 1.3
-argisub$db_13b[grepl("C", argisub$hzn_desgn) & is.na(argisub$db_13b)] <- 1.35
-```
+Carbon stock is the organic carbon content multiplied by bulk density in $kg/m^3$ multiplied by layer thickness ($m$)
 
-### Calculate organic carbon in kg/m^2. 
-
-Carbon content multipled by bulk density in kg/m^3 multiplied by layer thickness in meters
+We use the visual estimates of rock fragment volume by layer to account for fragments, assuming they do not store carbon. Treating missing `NA` fragments as zero.
 
 ```{r}
 res <- argisub %>%
   trunc(0, 100) %>%
-  mutate_profile(thk = (hzn_bot - hzn_top),
-                 c_stock_partial = (oc / 100) * ((db_13b * 1e6) / 1000) * (thk / 100),
+  mutate(thk = hzn_bot - hzn_top) %>% 
+  mutate_profile(c_stock_partial = (oc / 100) * ((db_13b * 1e6) / 1000) * (thk / 100),
+                 c_stock_pfrags = c_stock_partial * (1 - frags / 100),
                  cml_stock = cumsum(ifelse(is.na(c_stock_partial), 0, c_stock_partial)),
-                 c_stock = sum(c_stock_partial, na.rm = TRUE))
+                 cml_stock_frags = cumsum(ifelse(is.na(c_stock_pfrags), 0, c_stock_pfrags)),
+                 c_stock = sum(c_stock_partial, na.rm = TRUE),
+                 c_stock_frags = sum(c_stock_pfrags, na.rm = TRUE))
 ```
 
 ```{r, echo = FALSE}
-plot(density(res$c_stock, from = 0))
-abline(v=12, lwd=2, col="blue")
+ggplot(site(res)) +
+  geom_density(aes(x = c_stock, linetype = "NoFrags"), size=0.75) + 
+  geom_density(aes(x = c_stock_frags, linetype = "Frags"), size=0.75) + 
+  geom_vline(aes(xintercept = 12, color = "HumultCriterion"), size=0.75) +
+  geom_vline(aes(xintercept = median(c_stock), color = "MedianNoFrags"), size=0.75) +
+  geom_vline(aes(xintercept = median(c_stock_frags, na.rm=TRUE), color="MedianFrags"), size=0.75) +
+  labs(title = "Density plot of profile-level carbon stocks",
+       x = "Mineral Soil Carbon Stocks, 0-100cm [kg/m^2]", 
+       y = "Depth [cm]") +
+  geom_text(aes(x = 40, y = 0.02, label=sprintf("n = %s profiles", sum(!is.na(c_stock))))) +
+  scale_color_manual(name = "", values = c(MedianNoFrags = "blue", HumultCriterion = "red", MedianFrags = "green")) +
+  scale_linetype_manual(name = "Stock Type", values = c(NoFrags = "dotted", Frags = "twodash"))
+
+
 quantile(res$c_stock, probs = c(0, 0.5, 0.75, 0.95, 0.99, 1), na.rm = TRUE)
+quantile(res$c_stock_frags, probs = c(0, 0.5, 0.75, 0.95, 0.99, 1), na.rm = TRUE)
 ```
 
-### Visualizations of cumulative carbon stocks
+When neglecting fragments, just under half of the profiles meet the $12 kg/m^2$ requirement. When accounting for fragments, the estimated carbon stock in profiles and layers that contain fragments are lowered, creating a higher peak and shifting all quantiles to the left.
+
+### Visualizations of cumulative carbon stocks (within mineral soil)
 
 ```{r}
 res$cml_stock_gt12 <- factor(res$cml_stock > 12)
@@ -144,12 +272,28 @@ humcrit <- subset(res, c_stock > 12)
 plot(humcrit, color = "oc", name = NA, width = 0.5, print.id=FALSE)
 plot(humcrit, color = "c_stock_partial", name = NA, width = 0.5, print.id=FALSE)
 plot(humcrit, color = "cml_stock_gt12", name = NA, width = 0.5, print.id=FALSE)
+```
 
-# these meet it in first horizon, and have thick A horizons.
+This is the taxonomic breakdown for soils meeting the carbon criterion number 2 for Humults.
+
+```{r}
+table(humcrit$taxsuborder)
+```
+
+These pedons meet the criterion in first mineral horizon; mostly also have thick A horizons.
+
+```{r}
 humfhz <- subset(humcrit, humcrit[,1]$cml_stock_gt12 != FALSE)
 plot(humfhz, color = "c_stock_partial")
+```
+
+As populated, several suborders are represented in this high surface carbon subset.
+
+```{r}
 table(humfhz$taxsuborder)
 ```
+
+Note that the base saturation relationship may often be independent of the conditions that result in carbon accumulation. _Should there be a Humalfs suborder?_
 
 ### Spatial relationships of higher carbon accumulation
 
