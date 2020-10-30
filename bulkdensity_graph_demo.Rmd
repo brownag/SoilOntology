@@ -1,0 +1,235 @@
+---
+title: "Bulk Density in the National Cooperative Soil Survey Characterization Database"
+author: "Andrew G. Brown"
+date: "10/29/2020" 
+output: html_document
+---
+```{r setup, echo = FALSE, message = FALSE, warning = FALSE}
+knitr::opts_chunk$set(fig.retina = 3, warning = FALSE, message = FALSE)
+```
+ 
+## Bulk density is fundamental. 
+
+From an ontological standpoint, bulk density is describing how the soil "body" occupies space, and therefore is essential to what the soil _is_, or at least how Humans experience the soil's physical (and chemical) state of being. Our measurement of bulk density is highly affected by the tools we use to extract a sample or measure the volume of a particular portion of soil material. It is also affected by whether (and to what degree) we consider water and/or rock fragments to be soil materials. This is discipline and region specific.
+
+From an analytical standpoint, bulk density is a scaling factor applied to all gravimetric measurements on soils to relate back to some reference condition. That is: relation of any measurement on a dry, sieved soil mass basis back to a volume of "real" soil (what we call a "Whole Soil" basis) requires a measurement, estimates or assumption about bulk density and coarse fragments.
+
+In the realm of carbon stocks, for instance, bulk density is a property to consider carefully. Given measured organic carbon contents in, say, grams per kilogram across depth [soil materials change over depth] your choice as an analyst of the soil bulk density-depth function _matters_ to the estimate of the carbon stocks (kg/m^2) over an interval (say, 0 - 1 meter). You are dividing  _concentration_, in units of mass per mass, by an estimate of the bulk mass per volume to yield an abstract "volumes," which are then aggregated along the depth axis.
+
+This concept has practical application in the classification of the Humults in U.S. Soil Taxonomy:
+   
+ - _Humults_ criteria example: [LINK TO HUMULTS EXAMPLE]()
+
+## Get the data
+
+The `lab_analyte` table contains definitions of the analytes (physical and chemical measurements) used in the Kellog Soil Survey Laboratory Database Snapshot. The records include various attributes defining schema and human-readable descriptions.
+
+The Soil Data Access delivery method for these data is a work in progress by the Soil Survey Staff that would be greatly enhanced by collaboration with the Soil Ontology group's efforts. 
+
+```{r}
+library(soilDB)
+library(ggplot2)
+library(data.tree)
+library(igraph)
+
+# get lab_analyte data (currently index is missing to lab_analysis_procedure, and proced_code)
+analytes <- SDA_query("SELECT * from lab_analyte")
+db_analytes <- subset(analytes, grepl("db_", analyte_abbrev))
+
+# 25 different analytes (method classes) in NCSS characterization database contain prefix db_
+# they all pertain to bulk density
+nrow(db_analytes)
+```
+
+```{r, fig.width=10, fig.height=6, echo=FALSE}
+db_analytes$pathString <- paste("NCSSC_BulkDensity", 
+                            db_analytes$analyte_type, 
+                            db_analytes$analyte_abbrev, 
+                            sep = "/")
+plot(as.igraph(as.Node(db_analytes)))
+```
+
+More important than the absolute differences _between_ methods is distinguishing which one was used (_if any!_) so that assumptions implicit in derived values are made clear up front. Whether you are using measured or some other values, a person using your data in a meta-analysis may want to be able to use their own assumptions, or at least validate your assumptions. 
+
+```{r, echo=FALSE}
+knitr::kable(db_analytes[,c("analyte_name","analyte_abbrev","analyte_type")])
+```
+
+Each one of these analytes may contain one or more specific method codes that identify the method used. For the SSL's use of these databases internally, the mechanism has been employed to accomodate both external methods, as well as obsolesence of internal methods.
+
+Bulk density values are what we call an _aggregate_ analyte. The `analyte_type` column distinguishes these records.
+
+"Aggregate" means we make repeated measures on subsamples to assess precision and accuracy for individual samples (layers or horizons in a soil profile). For a soil property as fundamental and variable as bulk density, this is a pretty important thing to do for quality control. The measurements are prone to error, so sometimes it is important to have a sanity check.
+
+```{r}
+# NB: fix the space v.s. underscore in database analyte_type == "derived_analyte" and dupe of aggregate analyte
+db_analytes_agg <- subset(db_analytes, analyte_type == "aggregate analyte" | analyte_type == "aggregate_analyte")
+analytes_der <- subset(analytes, analyte_type == "derived_analyte")
+```
+
+So, if bulk density is so important, how can we show this? The `analyte_algorithm` contains an expression that can be evaluated to calculate a _derived_ analyte from other analytes. We will search that field to find dependencies.
+
+```{R}
+# calculate derived analytes that depend on the aggregate analytes
+db_analytes_agg_idx <- lapply(db_analytes_agg$analyte_abbrev, 
+                              function(i) { grep(i, analytes_der$analyte_algorithm) })
+names(db_analytes_agg_idx) <- db_analytes_agg$analyte_name
+```
+
+Most bulk density methods in use for soil science should fall into one of the following aggregate analyte "classes," where they will either conform with an existing SSL method code, or may warrant a new one:
+
+```{r, echo=FALSE}
+knitr::kable(data.frame(analyte_name = sort(db_analytes_agg$analyte_name)))
+```
+
+### Where are the bulk density _aggregate_ analyte codes used in _derived_ analyte calculations?
+
+```{r}
+lapply(db_analytes_agg_idx, function(y) analytes_der[y, "analyte_name"])
+```
+
+OK, we see that most of these methods are not used as inputs to derived analytes, but the latter few have many dependencies. Let's compare the data we have, before going down a rabbit hole on all of these methods. 
+
+First, we build some comparable datasets; we take the "long format" table subsets and merge so we have records that are 1:1 with `labsampnum`.
+
+```{r}
+# query 0.33 kPa and oven-dry, on sieved (<2mm) "fine earth" fraction
+#  ignoring specific method codes within classes
+db13b <- SDA_query("SELECT labsampnum, result_source_key, 
+                           bulk_density_third_bar, bulk_density_third_bar_method
+                    FROM lab_physical_properties 
+                    WHERE bulk_density_third_bar_method != ''")
+
+dbod <- SDA_query("SELECT labsampnum, result_source_key, 
+                          bulk_density_oven_dry, bulk_density_oven_dry_method
+                    FROM lab_physical_properties 
+                    WHERE bulk_density_oven_dry_method != ''")
+```
+
+```{r}
+# inner join based on common attributes (labsampnum [and result_source_key])
+dbcb <- merge(db13b, dbod)
+```
+
+We find we have 6 methods associated with different types of 0.33 kPa bulk density. Two methods (`4A1d` and `DbWR1`) are used for 0.33 kPa; the latter "`4A1e`and `4A1f` and `NK`, and `4A1c` are variants not defined in the most recent SSL methods manual. 
+
+```{r, echo=FALSE}
+table(dbcb$bulk_density_third_bar_method)
+```
+
+For oven-dry, we do not analogues to those extra 4 methods, but we have `4A1h` and `DbWR1`.
+
+```{r, echo=FALSE}
+table(dbcb$bulk_density_oven_dry_method)
+```
+
+```{r}
+# get the records for 0.33 kPa and oven dry
+dbcb_comparable1 <- subset(dbcb, bulk_density_third_bar_method %in% c("4A1d","3B1b") | 
+                                 bulk_density_oven_dry_method %in% c("4A1h","3B1c"))
+dbcb_comparable1 <- dbcb_comparable1[complete.cases(dbcb_comparable1),]
+
+table(dbcb_comparable1$bulk_density_third_bar_method)
+table(dbcb_comparable1$bulk_density_oven_dry_method)
+# 4A1d is obsolete code for Bulk Density at 1/3 bar (33 kPa) moisture retention; now 3B1b
+# 4A1h is obsolete code for Oven-dry Bulk Density; now 3B1c; 
+# NOTE: the new method codes are not used in this database
+```
+
+Also, we will compare the water retention-derived bulk density measures
+
+```{r}
+dbcb_comparable2 <- subset(dbcb, bulk_density_third_bar_method == "DbWR1" &
+                                 bulk_density_oven_dry_method == "DbWR1")
+dbcb_comparable2 <- dbcb_comparable2[complete.cases(dbcb_comparable2),]
+
+table(dbcb_comparable2$bulk_density_third_bar_method)
+table(dbcb_comparable2$bulk_density_oven_dry_method)
+
+# these mixed-method samples have DbWR1 for their third_bar method and 4A1h for their oven dry
+dbcb_mixed <- subset(dbcb, bulk_density_third_bar_method == "DbWR1" &
+                           bulk_density_oven_dry_method == "4A1h")
+table(dbcb_mixed$bulk_density_third_bar_method)
+table(dbcb_mixed$bulk_density_oven_dry_method)
+```
+
+```{r, echo=FALSE}
+# make a plot, using the joined data (paired by labsampnum)
+ggplot(data = dbcb_comparable1, aes(x = bulk_density_third_bar, y = bulk_density_oven_dry)) + 
+  geom_bin2d(bins = 50) + geom_abline(slope = 1, intercept = 0, colour = "red", lwd = 1) +
+  labs(title = "Oven-dry (4A1h) versus 0.33 kPa Bulk Density (4A1d)",
+       x = "Bulk Density, Oven-dry [g/cc]",
+       y = "Bulk Density, 0.33 kPa moisture tension [g/cc]") +
+  geom_text(aes(x = 2, y = 0.5, label = sprintf("n = %s (paired)", nrow(dbcb_comparable1)))) + 
+  coord_fixed() +  expand_limits(x = c(0,3), y = c(0,3))
+
+# increase in bulk density on oven-drying 
+ggplot(data = dbcb_comparable1, aes(x = bulk_density_oven_dry - bulk_density_third_bar)) + 
+  geom_density() +
+  labs(title = "Increase in Bulk Density on Oven-drying (4A1h versus 4A1d)",    
+       y = "Probability Density [-]",
+       x = "Bulk Density, difference [g/cc]") +
+  geom_text(aes(x = 1, y = 1, label = sprintf("n = %s", nrow(dbcb_comparable1))))
+
+# make a plot, using the joined data (paired by labsampnum)
+ggplot(data = dbcb_comparable2, aes(x = bulk_density_third_bar, y = bulk_density_oven_dry)) + 
+  geom_bin2d(bins = 50) + geom_abline(slope = 1, intercept = 0, colour = "red", lwd = 1) +
+  labs(title = "Oven-dry versus 0.33 kPa Bulk Density (DbWR1)",
+       x = "Bulk Density, Oven-dry [g/cc]",
+       y = "Bulk Density, 0.33 kPa moisture tension [g/cc]") + 
+  geom_text(aes(x = 2, y = 1, label = sprintf("n = %s (paired)", nrow(dbcb_comparable2)))) + 
+  coord_fixed() +  expand_limits(x = c(0, 5), y = c(0, 5))
+
+# increase in bulk density on oven-drying 
+ggplot(data = dbcb_comparable2, aes(x = bulk_density_oven_dry - bulk_density_third_bar)) + 
+  geom_density() +
+  labs(title = "Increase in Bulk Density on Oven-drying (DbWR1)",    
+       y = "Probability Density [-]",
+       x = "Bulk Density, difference [g/cc]") +
+  geom_text(aes(x = 1, y = 1, label = sprintf("n = %s", nrow(dbcb_comparable2))))
+
+# make a plot, using the joined data (paired by labsampnum)
+ggplot(data = dbcb_mixed, aes(x = bulk_density_third_bar, y = bulk_density_oven_dry)) + 
+  geom_bin2d(bins = 50) + geom_abline(slope = 1, intercept = 0, colour = "red", lwd = 1) +
+  labs(title = "Oven-dry versus 0.33 kPa Bulk Density\n(mixed 4A1h oven dry; DbWR1 0.33 kPa)",
+       x = "Bulk Density, Oven-dry [g/cc]",
+       y = "Bulk Density, 0.33 kPa moisture tension [g/cc]") + 
+  geom_text(aes(x = 2, y = 0.5, label = sprintf("n = %s (paired)", nrow(dbcb_mixed)))) + 
+  coord_fixed() +  expand_limits(x = c(0, 3), y = c(0, 3))
+
+# increase in bulk density on oven-drying 
+ggplot(data = dbcb_mixed, aes(x = bulk_density_oven_dry - bulk_density_third_bar)) + 
+  geom_density() +
+  labs(title = "Increase in Bulk Density on Oven-drying\n(mixed 4A1h oven dry; DbWR1 0.33 kPa)",    
+       y = "Probability Density [-]",
+       x = "Bulk Density, difference [g/cc]") +
+  geom_text(aes(x = 0.5, y = 1, label = sprintf("n = %s", nrow(dbcb_mixed))))
+```
+
+Tabulate results to go with the graphs:
+
+```{r}
+# summary statistics reveal similar offsets and distribution of Db increase on oven drying
+diff1 <- with(dbcb_comparable1, bulk_density_oven_dry - bulk_density_third_bar)
+diff2 <- with(dbcb_comparable2, bulk_density_oven_dry - bulk_density_third_bar)
+
+mean(diff1)
+quantile(diff1, probs = c(0,0.01,0.05,0.5,0.95,0.99,1))
+
+mean(diff2)
+quantile(diff2, probs = c(0,0.01,0.05,0.5,0.95,0.99,1))
+```
+
+```{r}
+# in total, we have nearly 80k measurements between these two paired sets
+any(dbcb_comparable1$labsampnum %in% dbcb_comparable2$labsampnum)
+nrow(dbcb_comparable1) + nrow(dbcb_comparable2) 
+```
+
+Moisture status and sample preparation matters internally for representation of bulk density. Knowing whether a sample was sieved and some estimate of the moisture state (field moist state, oven-dry, X tension) is essential to interpretation of bulk density values for soils. It is likely possible, with well-correlated data, to "convert" between different weight (moisture) bases, given other soil properties, but it is critical that primary data get allocated near as possible to their "correct" method to support this type of conversion. 
+
+The inclusion of rock fragments (>2mm) in weight measures is a potentially very complicated aspect of bulk density, in that sometimes those fragments are appreciably affecting soil functions such as water movement or heat transfer, whereas they are not "soil material" per se, even if you managed to get the core in around them. So "should" they be included? Traditionally, the answer is no. You may also need to be making assumptions about particle density; 2.65g/cc is a common figure for silicates.
+
+If water or fragment content are not known, they are not known. There should be a way to annotate this. Ensuring representative volume is the main challenge, depending on your environment and sampling method. While there may not be much adherence to standard methods specifically as written in the SSL manual, effort should be made to categorize and provide options to support meta-correlation involving similar parameters. 
+
+A broader, more "comprehensive" set of method codes could uniquely identify major variants on SSL methods that may be encountered "in the wild." From a bare-minimum data quality standpoint users of the NCSS characterization  databases want to make sure they are not causing duplication by not filtering on method code; e.g. incorporating repeated measurements of bulk density on same/similar samples for different moisture states.
