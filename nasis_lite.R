@@ -1,18 +1,17 @@
 # convert local NASIS MSSQL database to SQLITE analogue
 # 
 library(DBI)
-library(odbc) # driver to read MSSQL 
+library(RODBC) # driver to read MSSQL 
+#library(odbc) # note: still have nanodbc errors for tables with long data columns e.g. calculations
 library(RSQLite) # driver to write SQLite
-con <- dbConnect(odbc::odbc(), 
-                 DSN = "nasis_local", 
-                 UID = "NasisSqlRO",
-                 PWD = "nasisRe@d0n1y365")
+
+con <- soilDB:::.openNASISchannel()
 outcon <- dbConnect(RSQLite::SQLite(), "nasis_local.db")
 
-res <- lapply(dbListTables(con), function(x) {
+res <- lapply(RODBC::sqlTables(con)$TABLE_NAME, function(x) {
    print(x)
-   suppressWarnings({q <- try(dbGetQuery(con, statement = sprintf("SELECT * FROM %s", x)))
-   if (!inherits(q, 'try-error'))
+   suppressWarnings({q <- try(sqlQuery(con, sprintf("SELECT * FROM %s", x)))
+   if (inherits(q, 'data.frame'))
       return(dbWriteTable(outcon, name = x, value = q, overwrite = TRUE))})
     print(sprintf("could not write %s", x))
   })
