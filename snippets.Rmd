@@ -1,0 +1,14 @@
+---
+title: "snippets"
+author: "Andrew G. Brown"
+date: "11/2/2020"
+output: html_document
+---
+
+#### Acre Furrow Slice
+
+One of my advisors used to joke about "Who weighed the acre furrow slice?" The concept of "lbs per acre" or "kg per hectare" in agronomy rely on assumptions about the _weight_ and _uniformity_ of the "acre furrow slice" -- the soil volume that is turned over by a theoretical plow operated over a 1 acre area. 
+
+In U.S. Soil Taxonomy the furrow slice is the upper 18 cm or about 7 inches of mineral soil. Treating an acre furrow slice as a "representative elementary volume" you can scale measurements or application rate to "management" levels.
+
+When talking about soils _in general_, you don't have the homogenizing force of tillage over depth. In an increasing amount of modern agriculture you likewise do not have this. So, you have to deal with the fact that most properties vary non-linearly with depth, sometimes dramatically, and have complex spatial arrangements that are variably correlated with one another. You cannot resolve differences in bulk density over distances smaller than your measurement device. And larger samples may not have the same, or as well-behaved, aggregate properties as smaller samples. 

@@ -252,7 +252,7 @@ ggplot(site(res)) +
   geom_vline(aes(xintercept = median(c_stock_frags, na.rm=TRUE), color="MedianFrags"), size=0.75) +
   labs(title = "Density plot of profile-level carbon stocks",
        x = "Mineral Soil Carbon Stocks, 0-100cm [kg/m^2]", 
-       y = "Depth [cm]") +
+       y = "Probability Density [-]") +
   geom_text(aes(x = 40, y = 0.02, label=sprintf("n = %s profiles", sum(!is.na(c_stock))))) +
   scale_color_manual(name = "", values = c(MedianNoFrags = "blue", HumultCriterion = "red", MedianFrags = "green")) +
   scale_linetype_manual(name = "Stock Type", values = c(NoFrags = "dotted", Frags = "twodash"))
