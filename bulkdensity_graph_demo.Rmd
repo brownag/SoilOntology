@@ -5,28 +5,43 @@ date: "10/29/2020"
 output: html_document
 ---
 ```{r setup, echo = FALSE, message = FALSE, warning = FALSE}
-knitr::opts_chunk$set(fig.retina = 3, warning = FALSE, message = FALSE)
+knitr::opts_chunk$set(fig.retina = 3, warning = FALSE, message = FALSE, echo = FALSE)
 ```
  
 ## Bulk density is fundamental. 
 
-From an ontological standpoint, bulk density is describing how the soil "body" occupies space, and therefore is essential to what the soil _is_, or at least how Humans experience the soil's physical (and chemical) state of being. Bulk density integrates many aspects of the soil fabric. Our measurement of bulk density is highly affected by the tools we use to extract a sample or measure the volume of a particular portion of soil material. It is also affected by whether (and to what degree) we consider water and/or rock fragments to be soil materials. This is discipline and region specific.
+Soil texture, mineralogy, grain packing, soil depth, and organic matter content are among the major factors affecting the bulk densities we observe in soil materials.
 
-From an analytical standpoint, bulk density is a scaling factor applied to gravimetric measurements on soils to relate back to some reference condition. That is: relation of any measurement on a dry, sieved soil mass basis back to a volume of "real" soil (what we call a "Whole Soil" basis) requires a measurement, estimate or assumption about bulk density and coarse fragments.
+We have soil materials, which are comprised of mineral and organic particles that pass a 2mm sieve. The "Whole Soil" includes larger rock/wood/non-soil materials that occupy volume but lack the bulk characteristics of the soil materials that we analyze at the lab.
 
-In the realm of carbon stocks, for instance, bulk density is a property to consider carefully. Given measured organic carbon contents in, say, grams per kilogram across depth [soil materials change over depth] your choice as an analyst of the soil bulk density-depth function _matters_ to the estimate of the carbon stocks ($kg/m^2$) over a depth interval. 
+We define the density of a soil particle $D_{p}$ as follows. Commonly, we use assumptions about particle density to account for the mass-volume relationship of the non-soil fraction. A common $D_{p}$ figure for silicates is $2.65  g/cm^3$.
 
-This concept has practical application in the classification of the Humults in U.S. Soil Taxonomy.
+$$D_{p} = \frac{m_{particle}}{V_{particle}}$$
 
-**HB.** Other Ultisols that have _one or both_ of the following:
+The "bulk" density of soil integrates all of the masses and volumes of particles and pores over a particular portion of Whole Soil. When coarse particles (fragments) >2mm are present in that volume, they need to be accounted for (negated from the sample volume) when attempting to summarize characteristics of the soil material.
 
-1. 0.9 percent (by weighted average) or more organic carbon in the upper 15 cm of the argillic or kandic horizon; or
+$$D_{b} = \frac{m_{soil,~oven~dry}}{V_{soil}} = \frac{m_{soil,~oven~dry}}{V_{sample} - \frac{m_{coarse~fragments}}{D_{p,~coarse~fragments}}}$$
 
-2. $12 kg/m^2$ or more organic carbon between the mineral soil surface and a depth of 100 cm.
-   
- - [_Humults_ criteria example](humults.html)
+Bulk density is a scaling factor applied to gravimetric measurements on soils to relate back to some reference condition. Any measurement made on an oven dry, sieved soil mass basis converted back to a volume of a "Whole Soil" (i.e. field conditions) requires a measurement, estimate or assumption about bulk density and coarse fragments.
 
-## Get the data
+If water or fragment contents are not known, they are not known. Efforts should be made to categorize data sets and provide options to support meta-correlation involving similar parameters when these constituent measurements are missing.  
+The inclusion of coarse fragments in weight measures is a potentially very complicated aspect of bulk density relative to bulk soil body behavior, in that sometimes those fragments are appreciably affecting soil functions such as water movement or heat transfer, whereas they are not "soil materials." 
+
+From a bare-minimum data quality standpoint users of the NCSS characterization databases want to make sure they are not causing duplication by not filtering on method code; e.g. incorporating repeated measurements of bulk density on same/similar samples for different moisture states.
+
+Moisture and sample preparation matters internally for representation of bulk density. Knowing whether a sample was sieved and classification of the moisture state (e.g. field moist, oven-dry, X tension) is essential to interpretation of bulk density values for soils. It is possible with well-correlated data to estimate conversions between different bases, given other soil properties, but it is critical that primary data get allocated near as possible to their "correct" method to support this type of conversion. 
+
+### Calculate organic carbon stocks
+
+For an individual sample, we will have sieve separates for the coarse fraction up to 20mm from the KSSL lab. The 20 - 76mm fraction is sieved and weighed in the field at sampling time and the greater than 76 mm fraction is can be estimated by both weight or volume measures. 
+
+Carbon stock $C_p$ is the organic carbon content $C_i$ in a layer multiplied by bulk density $D_{b, i}$ in $kg/m^3$ multiplied by layer thickness ($L$ in $m$). 
+
+This yields a "stock" with units of mass per area. Implicit in this definition is some sort of soil depth aggregation (over $n$ layers)
+
+$$Cp = \sum_{i=1}^{n}\left(C_i * D_{b, i} * L_{i}\right)$$
+
+## Analyte and Method Metadata Wrangling
 
 The `lab_analyte` table contains definitions of the analytes (physical and chemical measurements) used in the National Cooperative Soil Survey Characterization Database Snapshot. The records include various attributes defining schema and human-readable descriptions.
 
@@ -58,16 +73,7 @@ methods$path <- sprintf("%s|%s|%s|%s|%s", 'NCSS Lab Methods',
 res <- as.Node(methods, pathName = 'path', pathDelimiter = '|', 'procedure_key', 'proced_abbrev')
 
 # demonstrate output for a single group of methods
-res$`Bulk Density`
-
-db_methods <- subset(methods, method_group == "Bulk Density")
-
-# this is the brute force methods and not effective
-# do.call('rbind', lapply(toupper(db_methods$analyte_name), function(x) {
-#     print(x)
-#     y <- stringdist(x, toupper(db_analytes$analyte_namerequested_anal_name), )
-#     db_analytes[which(y == min(y))[[1]],]
-#   }))
+# (res$`Bulk Density`)
 
 ## salvage relationships by reverse engineering from physical/chemical properties tables
 phys_names <- colnames(SDA_query("SELECT TOP(1) * from lab_physical_properties"))
@@ -81,40 +87,64 @@ db.idx <- grep("bulk_de|bd_", phys_measure_methods)
 db_measur_cols <- phys_measure_names[db.idx]
 db_method_cols <- phys_measure_methods[db.idx]
 
-db_data_methods_table <- data.table::rbindlist(lapply(db_method_cols, function(x) {
-  SDA_query(sprintf("SELECT %s FROM lab_physical_properties WHERE %s != ''", x, x))
-}), fill = TRUE)
+if(!file.exists("db_data_methods_table.rda")) {
+  # identify method codes referenced for each "data" column
+  db_data_methods_table <- data.table::rbindlist(lapply(db_method_cols, function(x) {
+    SDA_query(sprintf("SELECT %s FROM lab_physical_properties WHERE %s != ''", x, x))
+  }), fill = TRUE)
+  save(db_data_methods_table, file = "db_data_methods_table.rda")
+} else {
+  load("db_data_methods_table.rda")
+}
 db_data_methods <- apply(as.data.frame(db_data_methods_table), 2, unique)
 
 # lapply(db_data_methods, function(x) db_methods[na.omit(match(x, db_methods$proced_code)),])
 
+# get the analyte table
 analytes <- SDA_query("SELECT * from lab_analyte")
+
+# filter for bulk density related analytes
 db_analytes <- subset(analytes, grepl("db_", analyte_abbrev))
 
 # change some things to match tokens based on column names in database
+db_analytes$analyte_name_clean <- gsub("Bulk Density","Bulk Density Db",db_analytes$analyte_name)
 db_analytes$analyte_name_clean <- gsub("1/3","third thirdbar",db_analytes$analyte_name)
 db_analytes$analyte_name_clean <- gsub("<","lt",db_analytes$analyte_name_clean)
 db_analytes$analyte_name_clean <- gsub("1/10","tenth tenthbar",db_analytes$analyte_name_clean)
 
+#
+db_methods <- subset(methods, method_group == "Bulk Density")
 db_methods$requested_anal_name_clean <- gsub("1/3","third thirdbar",db_methods$requested_anal_name)
 db_methods$requested_anal_name_clean <- gsub("<","lt",db_methods$requested_anal_name_clean)
 db_methods$requested_anal_name_clean <- gsub("1/10","tenth tenthbar",db_methods$requested_anal_name_clean)
 
+# the DbWR1 method code is used for multiple moisture states
+moisture_states <- db_methods[c(1:2,1:2),]
+moisture_states$requested_anal_name_clean <- paste0(moisture_states$requested_anal_name_clean, rep(c(" third thirdbar", 
+                                                                                                     " oven dry")))
+db_methods <- rbind(moisture_states, db_methods[2:nrow(db_methods),])
+
 tokens <- lapply(lapply(db_measur_cols, strsplit, "_"), function(x) x[[1]])
 matching_analytes <- lapply(lapply(tokens, function(mtokens) {
-  res <- lapply(mtokens, function(token) {
-    grepl(token, db_analytes$analyte_name_clean, ignore.case = TRUE)
+    res <- lapply(mtokens, function(token) {
+      grepl(token, db_analytes$analyte_name_clean, ignore.case = TRUE)
+    })
+    return(res)
+  }), function(x) {
+    y <- rowSums(do.call('cbind', x))
+    db_analytes[which(y == max(y)),]
   })
-  return(res)
-}), function(x) {
-  y <- rowSums(do.call('cbind', x))
-  db_analytes[which(y == max(y)),]
-})
-best_analytes <- do.call('rbind', lapply(1:length(matching_analytes), function(z) { 
-  matching_analytes[[z]]$name <- db_measur_cols[z] 
-  matching_analytes[[z]]$aid <- 1:nrow(matching_analytes[[z]])
-  matching_analytes[[z]]
-}))
+good_analytes <- do.call('rbind', lapply(1:length(matching_analytes), function(z) { 
+    if(nrow(matching_analytes[[z]])) {
+      matching_analytes[[z]]$name <- db_measur_cols[z] 
+      matching_analytes[[z]]$aid <- 1:nrow(matching_analytes[[z]])
+      matching_analytes[[z]]
+    }
+  }))
+# take first and most specific column name from analyte table only
+best_analytes <- do.call('rbind', lapply(split(good_analytes, good_analytes$analyte_name_clean), function(x) {
+    return(x[which(nchar(x$name) == max(nchar(x$name)))[1],])
+  }))
 
 # TODO: abstract this beast
 matching_methods <- lapply(lapply(tokens, function(mtokens) {
@@ -133,15 +163,15 @@ best_methods <- do.call('rbind', lapply(1:length(matching_methods), function(z) 
   if (nrow(matching_methods[[z]])) {
      matching_methods[[z]]$name <- db_measur_cols[z] 
      matching_methods[[z]]$mid <- 1:nrow(matching_methods[[z]])
+     matching_methods[[z]]
   }
-  matching_methods[[z]]
 }))
 
 # 25 different analytes (method classes) in NCSS characterization database contain prefix db_
 # they all pertain to bulk density
-nrow(db_analytes)
+# nrow(db_analytes)
 
-db_analytes2 <- unique(merge(best_analytes, best_methods)[,c("analyte_type", "aid", "analyte_abbrev", "mid", "proced_code")])
+db_analytes2 <- merge(best_analytes, best_methods)[,c("analyte_type", "aid", "analyte_abbrev", "mid", "proced_code")]
 db_analytes_unpaired <- db_analytes[!(db_analytes$analyte_abbrev %in% db_analytes2$analyte_abbrev), c("analyte_type", "analyte_abbrev")]
 db_analytes_unpaired$aid <- 1
 db_analytes_unpaired$mid <- 1
@@ -154,16 +184,18 @@ db_analytes2 <- rbind(db_analytes2, db_analytes_unpaired)
 set.seed(544)
 db_analytes2$pathString <- paste("NCSSC_BulkDensity", 
                             db_analytes2$analyte_type, 
-                            db_analytes2$proced_code,
                             db_analytes2$analyte_abbrev, 
+                            db_analytes2$proced_code,
                             sep = "/")
 library(networkD3)
 par(mar=c(0,0,0,0))
 useRtreeList <- ToListExplicit(as.Node(db_analytes2), unname = TRUE)
-radialNetwork(useRtreeList, fontSize = 20)
+radialNetwork(useRtreeList, fontSize = 18)
 ```
 
-More important than the absolute differences _between_ methods is distinguishing which one was used (_if any!_) so that assumptions in derived values are made clear up front. Whether using measured values or otherwise, a person using data in a meta-analysis may want to be able to use their own assumptions, or at least validate our assumptions. A broader, more "comprehensive" set of method codes could uniquely identify major variants on SSL methods that may be encountered "in the wild." 
+Assumptions in derived values need to be made clear up front. Some commonly used measurements -- relating to "field capacity" and "15 bar" moisture are actually derived from other measurements. 
+
+Whether using measured values or otherwise, a person using data in a meta-analysis may want to be able to use their own assumptions, or at least validate our assumptions. A broader, more "comprehensive" set of method codes could uniquely identify major variants on SSL methods that may be encountered "in the wild." 
 
 ```{r, echo=FALSE}
 knitr::kable(db_analytes[,c("analyte_name","analyte_abbrev","analyte_type")],
@@ -218,7 +250,7 @@ OK, we see that most of these methods are not used as inputs to derived analytes
 
 First, we build some comparable datasets; we take the "long format" table subsets queried from `lab_physical_properties ` and merge so we have records that are 1:1 with `labsampnum`. Query 0.33 kPa and oven-dry data, ignoring specific method codes within classes.
 
-```{r}
+```{r, echo=TRUE}
 # note there is a 100,000 record and 32 Mb JSON serialization limit with SDA_query()
 db13b <- SDA_query("SELECT labsampnum, result_source_key, 
                            bulk_density_third_bar, bulk_density_third_bar_method
@@ -239,13 +271,13 @@ dbcb <- merge(db13b, dbod)
 We find we have 6 methods associated with different types of 0.33 kPa bulk density. Two methods (`4A1d` and `DbWR1`) are used for 0.33 kPa; the latter methods (`4A1e`and `4A1f` and `NK`, and `4A1c`) are variants not defined in the most recent SSL methods manual. 
 
 ```{r, echo=FALSE}
-table(dbcb$bulk_density_third_bar_method)
+knitr::kable(table(dbcb$bulk_density_third_bar_method), col.names = c("Method","Count"), caption = "Third Bar Method")
 ```
 
 For oven-dry, we have `4A1h` and `DbWR1`.
 
 ```{r, echo=FALSE}
-table(dbcb$bulk_density_oven_dry_method)
+knitr::kable(table(dbcb$bulk_density_oven_dry_method), col.names = c("Method","Count"), caption = "Oven Dry Method")
 ```
 
 Most of the derived calculations use the Bulk Density at 1/3 bar (33 kPa), and some use oven dry. We will pull from the non-`DbWR1` methods first.
@@ -254,11 +286,11 @@ NOTE: Method code `4A1d` is obsolete code for _Bulk Density at 1/3 bar (33 kPa)_
 
 ```{r}
 dbcb_comparable1 <- subset(dbcb, bulk_density_third_bar_method %in% c("4A1d","3B1b") &
-                                 bulk_density_oven_dry_method %in% c("4A1h","3B1c"))
+                                 bulk_density_oven_dry_method  %in% c("4A1h","3B1c"))
 dbcb_comparable1 <- dbcb_comparable1[complete.cases(dbcb_comparable1),]
 
-table(dbcb_comparable1$bulk_density_third_bar_method)
-table(dbcb_comparable1$bulk_density_oven_dry_method)
+knitr::kable(table(dbcb_comparable1$bulk_density_third_bar_method), col.names = c("Method","Count"), caption = "Third Bar Method")
+knitr::kable(table(dbcb_comparable1$bulk_density_oven_dry_method), col.names = c("Method","Count"), caption = "Oven Dry Method")
 ```
 
 ```{r, echo=FALSE}
@@ -286,8 +318,8 @@ dbcb_comparable2 <- subset(dbcb, bulk_density_third_bar_method == "DbWR1" &
                                  bulk_density_oven_dry_method == "DbWR1")
 dbcb_comparable2 <- dbcb_comparable2[complete.cases(dbcb_comparable2),]
 
-table(dbcb_comparable2$bulk_density_third_bar_method)
-table(dbcb_comparable2$bulk_density_oven_dry_method)
+knitr::kable(table(dbcb_comparable2$bulk_density_third_bar_method), col.names = c("Method","Count"), caption = "Third Bar Method")
+knitr::kable(table(dbcb_comparable2$bulk_density_oven_dry_method), col.names = c("Method","Count"), caption = "Oven Dry Method")
 ```
 
 ```{r, echo=FALSE}
@@ -313,8 +345,8 @@ Finally, these mixed-method samples have `DbWR1` for their `third_bar` method an
 ```{r}
 dbcb_mixed <- subset(dbcb, bulk_density_third_bar_method == "DbWR1" &
                            bulk_density_oven_dry_method == "4A1h")
-table(dbcb_mixed$bulk_density_third_bar_method)
-table(dbcb_mixed$bulk_density_oven_dry_method)
+knitr::kable(table(dbcb_mixed$bulk_density_third_bar_method), col.names = c("Method","Count"), caption = "Third Bar Method")
+knitr::kable(table(dbcb_mixed$bulk_density_oven_dry_method), col.names = c("Method","Count"), caption = "Oven Dry Method")
 ```
 
 ```{r, echo=FALSE}
@@ -341,8 +373,8 @@ Tabulate results to go with the graphs:
 # summary statistics reveal similar offsets and distribution of Db increase on oven drying
 do_diff <- function(x) {
   difff <- with(x, bulk_density_oven_dry - bulk_density_third_bar)
-  print(sprintf("Mean: %s", mean(difff)))
-  print(quantile(difff, probs = c(0,0.01,0.05,0.5,0.95,0.99,1)))
+  print(knitr::kable(data.frame(Q = t(quantile(difff, probs = c(0,0.01,0.05,0.5,0.95,0.99,1))), mean(difff), sd(difff)),
+                     col.names = c("Q0", "Q1", "Q5", "Q50", "Q95", "Q99", "Q100", "MEAN", "SD"), digits = 2))
 }
 
 do_diff(dbcb_comparable1)
@@ -359,8 +391,16 @@ any(dbcb_comparable1$labsampnum %in% dbcb_comparable2$labsampnum)
 nrow(dbcb_comparable1) + nrow(dbcb_comparable2) 
 ```
 
-Moisture status and sample preparation matters internally for representation of bulk density. Knowing whether a sample was sieved and some estimate of the moisture state (field moist state, oven-dry, X tension) is essential to interpretation of bulk density values for soils. It is likely possible, with well-correlated data, to "convert" between different weight (moisture) bases, given other soil properties, but it is critical that primary data get allocated near as possible to their "correct" method to support this type of conversion. 
+Bulk density integrates many aspects of the soil fabric. Bulk density is describing how the soil "body" occupies space. Our measurement of bulk density is highly affected by the tools we use to extract a sample or measure the volume of a particular portion of soil material. It is also affected by whether (and to what degree) we consider water and/or rock fragments to be soil materials. This is discipline and region specific.
 
-The inclusion of rock fragments (>2mm) in weight measures is a potentially very complicated aspect of bulk density, in that sometimes those fragments are appreciably affecting soil functions such as water movement or heat transfer, whereas they are not "soil material" per se, even if you managed to get the core in around them. So "should" they be included? Traditionally, the answer is no. You may also need to be making assumptions about particle density; 2.65 g/cc is a common figure for silicates.
+In the realm of carbon stocks, for instance, bulk density is a property to consider carefully. Given measured organic carbon contents in, say, grams per kilogram across depth [soil materials change over depth] your choice as an analyst of the soil bulk density-depth function _matters_ to the estimate of the carbon stocks ($kg/m^2$) over a depth interval. 
 
-If water or fragment content are not known, they are not known. There should be a way to annotate this. Ensuring representative volume is the main challenge, depending on your environment and sampling method. While there may not be much adherence to standard methods specifically as written in the SSL manual, effort should be made to categorize and provide options to support meta-correlation involving similar parameters. From a bare-minimum data quality standpoint users of the NCSS characterization  databases want to make sure they are not causing duplication by not filtering on method code; e.g. incorporating repeated measurements of bulk density on same/similar samples for different moisture states.
+The relevance of bulk density to carbon stocks can be seen in the classification of the Humults in U.S. Soil Taxonomy.
+
+**HB.** Other Ultisols that have _one or both_ of the following:
+
+1. 0.9 percent (by weighted average) or more organic carbon in the upper 15 cm of the argillic or kandic horizon; or
+
+2. $12 kg/m^2$ or more organic carbon between the mineral soil surface and a depth of 100 cm.
+   
+ - [_Humults_ criteria example](humults.html)
