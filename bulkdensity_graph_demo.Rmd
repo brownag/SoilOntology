@@ -38,21 +38,129 @@ library(ggplot2)
 library(data.tree)
 library(igraph)
 
-# get lab_analyte data (currently index is missing to lab_analysis_procedure, and proced_code)
+methods <- SDA_query("SELECT DISTINCT procedure_key, proced_abbrev, requested_anal_name, 
+                     proced_name, proced_code, proced_desc FROM lab_method_code")
+# clean whitespace
+methods$requested_anal_name <- trimws(methods$requested_anal_name)
+
+# combine code + description
+methods$code_desc <- sprintf("%s (%s)", methods$proced_code, methods$proced_desc)
+
+# extract method group if available (Bulk Density, ....) <- before the comma
+methods$method_group <- as.character(lapply(strsplit(methods$requested_anal_name, ",", TRUE), function(x) x[[1]]))
+
+# build data.tree path: [root] -> [method group] -> [analysis name] -> [procedure name] -> [procedure code + (description)]
+methods$path <- sprintf("%s|%s|%s|%s|%s", 'NCSS Lab Methods', 
+                        methods$method_group, methods$requested_anal_name, 
+                        methods$proced_name, methods$code_desc)
+
+# init data.tree from path, attaching additional columns to leaves
+res <- as.Node(methods, pathName = 'path', pathDelimiter = '|', 'procedure_key', 'proced_abbrev')
+
+# demonstrate output for a single group of methods
+res$`Bulk Density`
+
+db_methods <- subset(methods, method_group == "Bulk Density")
+
+# this is the brute force methods and not effective
+# do.call('rbind', lapply(toupper(db_methods$analyte_name), function(x) {
+#     print(x)
+#     y <- stringdist(x, toupper(db_analytes$analyte_namerequested_anal_name), )
+#     db_analytes[which(y == min(y))[[1]],]
+#   }))
+
+## salvage relationships by reverse engineering from physical/chemical properties tables
+phys_names <- colnames(SDA_query("SELECT TOP(1) * from lab_physical_properties"))
+idx <- grep("method$", phys_names)
+phys_measure_names <- phys_names[idx-1]
+phys_measure_methods <- phys_names[idx]
+# nb: check  "estimated_om_plus_mineral"         "fiber_analysis_method"
+
+# focus just on Db
+db.idx <- grep("bulk_de|bd_", phys_measure_methods)
+db_measur_cols <- phys_measure_names[db.idx]
+db_method_cols <- phys_measure_methods[db.idx]
+
+db_data_methods_table <- data.table::rbindlist(lapply(db_method_cols, function(x) {
+  SDA_query(sprintf("SELECT %s FROM lab_physical_properties WHERE %s != ''", x, x))
+}), fill = TRUE)
+db_data_methods <- apply(as.data.frame(db_data_methods_table), 2, unique)
+
+# lapply(db_data_methods, function(x) db_methods[na.omit(match(x, db_methods$proced_code)),])
+
 analytes <- SDA_query("SELECT * from lab_analyte")
 db_analytes <- subset(analytes, grepl("db_", analyte_abbrev))
+
+# change some things to match tokens based on column names in database
+db_analytes$analyte_name_clean <- gsub("1/3","third thirdbar",db_analytes$analyte_name)
+db_analytes$analyte_name_clean <- gsub("<","lt",db_analytes$analyte_name_clean)
+db_analytes$analyte_name_clean <- gsub("1/10","tenth tenthbar",db_analytes$analyte_name_clean)
+
+db_methods$requested_anal_name_clean <- gsub("1/3","third thirdbar",db_methods$requested_anal_name)
+db_methods$requested_anal_name_clean <- gsub("<","lt",db_methods$requested_anal_name_clean)
+db_methods$requested_anal_name_clean <- gsub("1/10","tenth tenthbar",db_methods$requested_anal_name_clean)
+
+tokens <- lapply(lapply(db_measur_cols, strsplit, "_"), function(x) x[[1]])
+matching_analytes <- lapply(lapply(tokens, function(mtokens) {
+  res <- lapply(mtokens, function(token) {
+    grepl(token, db_analytes$analyte_name_clean, ignore.case = TRUE)
+  })
+  return(res)
+}), function(x) {
+  y <- rowSums(do.call('cbind', x))
+  db_analytes[which(y == max(y)),]
+})
+best_analytes <- do.call('rbind', lapply(1:length(matching_analytes), function(z) { 
+  matching_analytes[[z]]$name <- db_measur_cols[z] 
+  matching_analytes[[z]]$aid <- 1:nrow(matching_analytes[[z]])
+  matching_analytes[[z]]
+}))
+
+# TODO: abstract this beast
+matching_methods <- lapply(lapply(tokens, function(mtokens) {
+  res <- lapply(mtokens, function(token) {
+    grepl(token, db_methods$requested_anal_name_clean, ignore.case = TRUE)
+  })
+  return(res)
+}), function(x) {
+  y <- rowSums(do.call('cbind', x))
+  db_methods[which(y == max(y)),]
+})
+db_data_methods_num <- db_data_methods
+names(db_data_methods_num) <- NULL
+best_methods <- do.call('rbind', lapply(1:length(matching_methods), function(z) { 
+  matching_methods[[z]] <- subset(matching_methods[[z]], proced_code %in% db_data_methods_num[[z]])
+  if (nrow(matching_methods[[z]])) {
+     matching_methods[[z]]$name <- db_measur_cols[z] 
+     matching_methods[[z]]$mid <- 1:nrow(matching_methods[[z]])
+  }
+  matching_methods[[z]]
+}))
 
 # 25 different analytes (method classes) in NCSS characterization database contain prefix db_
 # they all pertain to bulk density
 nrow(db_analytes)
+
+db_analytes2 <- unique(merge(best_analytes, best_methods)[,c("analyte_type", "aid", "analyte_abbrev", "mid", "proced_code")])
+db_analytes_unpaired <- db_analytes[!(db_analytes$analyte_abbrev %in% db_analytes2$analyte_abbrev), c("analyte_type", "analyte_abbrev")]
+db_analytes_unpaired$aid <- 1
+db_analytes_unpaired$mid <- 1
+db_analytes_unpaired$proced_code <- "No method code"
+db_analytes_unpaired$proced_code[grepl("aggregate", db_analytes_unpaired$analyte_type)] <- "Not in snapshot?"
+db_analytes2 <- rbind(db_analytes2, db_analytes_unpaired)
 ```
 
-```{r, fig.width=10, fig.height=6, echo=FALSE}
-db_analytes$pathString <- paste("NCSSC_BulkDensity", 
-                            db_analytes$analyte_type, 
-                            db_analytes$analyte_abbrev, 
+```{r, fig.width=10, fig.height=10, echo=FALSE}
+set.seed(544)
+db_analytes2$pathString <- paste("NCSSC_BulkDensity", 
+                            db_analytes2$analyte_type, 
+                            db_analytes2$proced_code,
+                            db_analytes2$analyte_abbrev, 
                             sep = "/")
-plot(as.igraph(as.Node(db_analytes)))
+library(networkD3)
+par(mar=c(0,0,0,0))
+useRtreeList <- ToListExplicit(as.Node(db_analytes2), unname = TRUE)
+radialNetwork(useRtreeList, fontSize = 20)
 ```
 
 More important than the absolute differences _between_ methods is distinguishing which one was used (_if any!_) so that assumptions in derived values are made clear up front. Whether using measured values or otherwise, a person using data in a meta-analysis may want to be able to use their own assumptions, or at least validate our assumptions. A broader, more "comprehensive" set of method codes could uniquely identify major variants on SSL methods that may be encountered "in the wild." 
