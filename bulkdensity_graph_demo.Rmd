@@ -8,77 +8,122 @@ output: html_document
 knitr::opts_chunk$set(fig.retina = 3, warning = FALSE, message = FALSE, echo = FALSE)
 ```
  
-## Bulk density is fundamental. 
+## Soil bulk density is fundamental to understanding soils.
 
-Soil texture, mineralogy, grain packing, soil depth, and organic matter content are among the major factors affecting the bulk densities we observe in soil materials.
+There is a great deal more information on the topics referenced in this document in the [National Soil Survey Handbook (NSSH)](https://www.nrcs.usda.gov/wps/portal/nrcs/detail/soils/ref/?cid=nrcs142p2_054242), 
 
-We have soil materials, which are comprised of mineral and organic particles that pass a 2mm sieve. The "Whole Soil" includes larger rock/wood/non-soil materials that occupy volume but lack the bulk characteristics of the soil materials that we analyze at the lab.
+Soil particle size distribution, mineralogy, grain packing, soil depth, and organic matter content are among the major properties affecting the bulk densities we observe in soil materials (NSSH, parts 618.32 "Rock fragments in the soil", 618.44 "Organic Matter", 618.45 "Parent Material, Kind, Modifier, and Origin")
 
-We define the density of a soil particle $D_{p}$ as follows. Commonly, we use assumptions about particle density to account for the mass-volume relationship of the non-soil fraction. A common $D_{p}$ figure for silicates is $2.65  g/cm^3$.
+### Soil Materials
+
+In the USDA system we have mineral and organic soil materials (Keys to Soil Taxonomy, 12th edition, p. 3). 
+
+_Mineral soil materials_ are particles passing a 2.0 mm sieve with carbon content (by weight) less than a threshold. The definition in  takes into account water saturation of the soil and clay content to the threshold. _Organic soil materials_ are defined as materials exceeding the carbon thresholds for mineral soil materials.
+
+### The "Whole Soil" basis
+
+The _Whole Soil_ is the basis we report many measurements on for NCSS products -- notably available water capacities, water retention values, and the like. But any measurement that is made on an oven-dry soil mass basis ultimately is corrected to the Whole Soil basis for broader use. This is to include effects of larger rock/wood/non-soil materials that occupy volume but lack the bulk characteristics of soil materials. 
+
+Soil materials are often the fundamental "object" of our study, but the content and distribution of larger fragment materials within the soil body is very important to soil classification and interpretations.
+
+### Fundamental definitions
+
+#### Particle density
+
+The solid particles that comprise the Whole Soil are classified based on whether they pass a 2 mm sieve. This naturally provides distinction for materials that are granular in nature. The material that passes the sieve is the _fine-earth fraction_ and the material retained is the _coarse fraction_. In principle, a particle in a soil could be a mineral grain, an organic fiber, a microbe, a piece of gravel, a tree trunk, a boulder, etc.
+
+Particles are single "pieces" of coherent/cemented material. The process of separating particle from one another systematically based on size and related physical characteristics is called _particle size analysis_. 
+
+We define the density of our broadly-defined "particle" $D_{p}$ as follows:
 
 $$D_{p} = \frac{m_{particle}}{V_{particle}}$$
 
-The "bulk" density of soil integrates all of the masses and volumes of particles and pores over a particular portion of Whole Soil. When coarse particles (fragments) >2mm are present in that volume, they need to be accounted for (negated from the sample volume) when attempting to summarize characteristics of the soil material.
+Assumptions are commonly used for particle density. A common $D_{p}$ figure for silicates is $2.65~g/cm^3$. In NASIS at the individual _Pedon_ and map unit _Component_ level we have fields and calculations for particle density. We also have the ability to measure it in the lab for soils or their separates.
 
-$$D_{b} = \frac{m_{soil,~oven~dry}}{V_{soil}} = \frac{m_{soil,~oven~dry}}{V_{sample} - \frac{m_{coarse~fragments}}{D_{p,~coarse~fragments}}}$$
+#### Bulk density
 
-Bulk density is a scaling factor applied to gravimetric measurements on soils to relate back to some reference condition. Any measurement made on an oven dry, sieved soil mass basis converted back to a volume of a "Whole Soil" (i.e. field conditions) requires a measurement, estimate or assumption about bulk density and coarse fragments.
+The "bulk" density of a sample integrates all of the masses of particles over a volume of Whole Soil. When coarse particles (fragments greater than 2 mm diameter) are present in that volume, conventionally they are negated from the sample volume to calculate _soil bulk density_.
 
-If water or fragment contents are not known, they are not known. Efforts should be made to categorize data sets and provide options to support meta-correlation involving similar parameters when these constituent measurements are missing.  
-The inclusion of coarse fragments in weight measures is a potentially very complicated aspect of bulk density relative to bulk soil body behavior, in that sometimes those fragments are appreciably affecting soil functions such as water movement or heat transfer, whereas they are not "soil materials." 
+$$D_{b, soil} = \frac{m_{soil,~oven~dry}}{V_{soil}} = \frac{m_{soil,~oven~dry}}{V_{sample} - \frac{m_{fragments}}{D_{p,fragments}}}$$
 
-From a bare-minimum data quality standpoint users of the NCSS characterization databases want to make sure they are not causing duplication by not filtering on method code; e.g. incorporating repeated measurements of bulk density on same/similar samples for different moisture states.
+When one considers that most soil analyses are reported on an oven-dry mass basis (e.g. $mg/kg$), bulk density one of two critical scaling factors to relate to the "Whole Soil" reference condition. 
 
-Moisture and sample preparation matters internally for representation of bulk density. Knowing whether a sample was sieved and classification of the moisture state (e.g. field moist, oven-dry, X tension) is essential to interpretation of bulk density values for soils. It is possible with well-correlated data to estimate conversions between different bases, given other soil properties, but it is critical that primary data get allocated near as possible to their "correct" method to support this type of conversion. 
+The second is fragments. The volume of fragments in the layer being summarized may be appreciably affecting soil functions such as water movement or heat transfer, so they are important to recognize despite not being "soil materials." 
 
-### Calculate organic carbon stocks
+#### Soil v.s. Non-soil
 
-For an individual sample, we will have sieve separates for the coarse fraction up to 20mm from the KSSL lab. The 20 - 76mm fraction is sieved and weighed in the field at sampling time and the greater than 76 mm fraction is can be estimated by both weight or volume measures. 
+Knowing where in the profile a bulk density sample came from, whether it was sieved, whether there were volumetric estimates of fragments, and the moisture state (e.g. field moist, oven-dry, X tension) is essential to interpretation of bulk density values for soils. 
 
-Carbon stock $C_p$ is the organic carbon content $C_i$ in a layer multiplied by bulk density $D_{b, i}$ in $kg/m^3$ multiplied by layer thickness ($L$ in $m$). 
+If water or fragment contents are not known, they are not known. This makes it somewhat harder to interpret bulk density "data" (which is always a calculation of some sort) at face value -- you do not know what materials the mass refers to. 
 
-This yields a "stock" with units of mass per area. Implicit in this definition is some sort of soil depth aggregation (over $n$ layers)
+Efforts should be made to categorize data sets and provide options to support meta-correlation involving _similar_ parameters when  constituent measurements for bulk density are missing or unreliable. 
 
-$$Cp = \sum_{i=1}^{n}\left(C_i * D_{b, i} * L_{i}\right)$$
+### Rock fragment volume estimates
+
+See NSSH part 618.32 "Fragments in the Soil"
+
+For an individual sample, we will get sieve separates for the coarse fraction from the lab, but we really lean on the field observations of these properties. Mass basis measurements of fragments (accurate) are be converted to _meaningful_ volume estimates by dividing by $D_p$. With a standard sieve and a rugged scale, one can relatively readily do field measurements of fragments up to 76 mm.
+
+For larger fragments, if a large proportion are near or greater than 76mm, you would may need to sieve several hundred kilograms or more of sample to get a "representative" weight per volume -- so commonly this is done by visual estimate (like a routine profile description).
+
+ - The 2 - 20 mm and 20 - 76 mm fractions are sieved and weighed in the field at sampling time. The field measurements and estimations are provided to the lab as metadata, ultimately paired by `labsampnum`. 
+ 
+ - The larger fractions are stored in the NASIS _Pedon_ object. _Pedon Horizon Fragments_ holds weight or volume $\%$ measures as needed; volume $\%$ is what is conventionally reported in our maps.
+
+### Calculate organic carbon stocks with bulk density
+
+A Carbon pool, or stock, is a value with units of mass per area. It is an excellent applied example of the effects of soil bulk density on the types of measurements we make on soils. 
+
+$C_p$ is the sum of organic carbon contents $C_i$ ($\%~by~mass$) multiplied by bulk density $D_{b, i}$ ($kg/m^3$) multiplied by layer thickness $L_i$ ($m$). These can be scaled based on $V_{fragments, i}$, the ratio of the layer volume occupied by fragments to the total volume of the layer. 
+
+The result is in units of  $kg/m^2$; where the 1-D definition is aggregation soil length over $n$ layers; so "stocks" are conventionally reported over a specific interval (e.g. 0 to 100 cm).
+
+$$Cp = \sum_{i=1}^{n}\left(\frac{C_i}{100} * D_{b, soil, i} * L_{i} * V_{fragments, i}\right)$$
+
+The most appropriate "total fragment volume" (accounting for all size classes) for a layer often is not the same as what was observed in an individual sieved core or clod sample at the lab. However, the precision of e.g. visual estimates is certainly not as reliable as the portions measured in the lab. There is a balance that needs to be struck based on applications of an analysis or their scope.
 
 ## Analyte and Method Metadata Wrangling
 
-The `lab_analyte` table contains definitions of the analytes (physical and chemical measurements) used in the National Cooperative Soil Survey Characterization Database Snapshot. The records include various attributes defining schema and human-readable descriptions.
+There is more to this than oven-dry bulk density and sieving fragments, though.
 
-The delivery methods for these laboratory characterization data are a work in progress by the USDA-NRCS Soil Survey Staff. This effort would be greatly enhanced by collaboration with the Soil Ontology group. 
+The `lab_analyte` table is found in Soil Data Access (SDA), as well as the various lab data snapshots. SDA is the web API for accessing most of the public data available from the NCSS. This table contains definitions of the analytes (physical and chemical measurements) used in the National Cooperative Soil Survey Characterization Database Snapshot.
+
+The `lab_method_code` table indexes the specific procedures used to measure analytes, abbreviation codes, and references. There is not a 1:1 relationship between analytes and methods. In some cases, older methods have become obsolete and replaced with new method codes that measure the same analyte, so there are many method codes for one analyte. Some methods measure multiple analytes. Some analytes are more specific and have only a single method code in use. Further, there are derivative analytes that are based on calculations using other analytes.
+
+There is a significant amount of information and metadata stored in the collective group of databases that feed into NASIS (the National Soil Information System).
+
+In NASIS, there are still some important linkages to various internal databases held together by dedicated software and manual interventions. Recognizing important linkages within the database currently requires some insider knowledge. It would be good to make some of these linkages more explicit, transparent and portable. 
+
+New delivery methods for the laboratory characterization data are a work in progress by the USDA-NRCS Soil Survey Staff. This effort would be greatly enhanced by collaboration with the Soil Ontology group. 
 
 ```{r}
 library(soilDB)
 library(ggplot2)
 library(data.tree)
-library(igraph)
+library(networkD3)
 
 methods <- SDA_query("SELECT DISTINCT procedure_key, proced_abbrev, requested_anal_name, 
                      proced_name, proced_code, proced_desc FROM lab_method_code")
 # clean whitespace
 methods$requested_anal_name <- trimws(methods$requested_anal_name)
 
-# combine code + description
-methods$code_desc <- sprintf("%s (%s)", methods$proced_code, methods$proced_desc)
-
 # extract method group if available (Bulk Density, ....) <- before the comma
 methods$method_group <- as.character(lapply(strsplit(methods$requested_anal_name, ",", TRUE), function(x) x[[1]]))
 
 # build data.tree path: [root] -> [method group] -> [analysis name] -> [procedure name] -> [procedure code + (description)]
-methods$path <- sprintf("%s|%s|%s|%s|%s", 'NCSS Lab Methods', 
-                        methods$method_group, methods$requested_anal_name, 
-                        methods$proced_name, methods$code_desc)
+methods$path <- sprintf("%s|%s|%s", 'NCSS Lab Methods',  methods$method_group, methods$proced_code)
 
 # init data.tree from path, attaching additional columns to leaves
-res <- as.Node(methods, pathName = 'path', pathDelimiter = '|', 'procedure_key', 'proced_abbrev')
+res <- as.Node(methods, pathName = 'path', pathDelimiter = '|')
 
-# demonstrate output for a single group of methods
-# (res$`Bulk Density`)
+par(mar=c(0,0,0,0))
+useRtreeList <- ToListExplicit(res, unname = TRUE)
+radialNetwork(useRtreeList, fontSize = 18)
 
 ## salvage relationships by reverse engineering from physical/chemical properties tables
 phys_names <- colnames(SDA_query("SELECT TOP(1) * from lab_physical_properties"))
 idx <- grep("method$", phys_names)
-phys_measure_names <- phys_names[idx-1]
+phys_measure_names <- phys_names[idx - 1]
 phys_measure_methods <- phys_names[idx]
 # nb: check  "estimated_om_plus_mineral"         "fiber_analysis_method"
 
@@ -87,7 +132,7 @@ db.idx <- grep("bulk_de|bd_", phys_measure_methods)
 db_measur_cols <- phys_measure_names[db.idx]
 db_method_cols <- phys_measure_methods[db.idx]
 
-if(!file.exists("db_data_methods_table.rda")) {
+if (!file.exists("db_data_methods_table.rda")) {
   # identify method codes referenced for each "data" column
   db_data_methods_table <- data.table::rbindlist(lapply(db_method_cols, function(x) {
     SDA_query(sprintf("SELECT %s FROM lab_physical_properties WHERE %s != ''", x, x))
@@ -112,7 +157,6 @@ db_analytes$analyte_name_clean <- gsub("1/3","third thirdbar",db_analytes$analyt
 db_analytes$analyte_name_clean <- gsub("<","lt",db_analytes$analyte_name_clean)
 db_analytes$analyte_name_clean <- gsub("1/10","tenth tenthbar",db_analytes$analyte_name_clean)
 
-#
 db_methods <- subset(methods, method_group == "Bulk Density")
 db_methods$requested_anal_name_clean <- gsub("1/3","third thirdbar",db_methods$requested_anal_name)
 db_methods$requested_anal_name_clean <- gsub("<","lt",db_methods$requested_anal_name_clean)
@@ -188,14 +232,33 @@ db_analytes2$pathString <- paste("NCSSC_BulkDensity",
                             db_analytes2$proced_code,
                             sep = "/")
 library(networkD3)
-par(mar=c(0,0,0,0))
+par(mar = c(0,0,0,0))
 useRtreeList <- ToListExplicit(as.Node(db_analytes2), unname = TRUE)
 radialNetwork(useRtreeList, fontSize = 18)
 ```
 
-Assumptions in derived values need to be made clear up front. Some commonly used measurements -- relating to "field capacity" and "15 bar" moisture are actually derived from other measurements. 
+```{r, fig.width=10, fig.height=10, echo=FALSE}
+res <- lapply(analytes$analyte_abbrev, grepl, analytes$analyte_algorithm)
+analyte.sub <- analytes[do.call('c', lapply(res, which)),]
+analyte.sub$analyte_size_frac_base[is.na(analyte.sub$analyte_size_frac_base)] <- "NONE"
 
-Whether using measured values or otherwise, a person using data in a meta-analysis may want to be able to use their own assumptions, or at least validate our assumptions. A broader, more "comprehensive" set of method codes could uniquely identify major variants on SSL methods that may be encountered "in the wild." 
+analyte.sub$pathString <- paste("NCSSC_analytes", 
+                                 analyte.sub$analyte_type, 
+                                 analyte.sub$analyte_size_frac_base,
+                                 analyte.sub$analyte_abbrev,
+                                 sep = "/")
+analyte.sub <- as.Node(analyte.sub)
+
+par(mar=c(0,0,0,0))
+useRtreeList <- ToListExplicit(analyte.sub, unname = TRUE)
+radialNetwork(useRtreeList, fontSize = 18)
+```
+
+Assumptions in derived values need to be made clear up front. Some commonly used measurements -- relating to saturation, "field capacity" and 15 bar moisture are actually _derived_ from other measurements. 
+
+It is possible with well-correlated data to estimate conversions between different bases, given other soil properties. This is something we do routinely in NASIS. If this is a goal, it is absolutely critical that primary data with the relevant metadata get allocated _near as possible_ to their "correct" method. 
+
+Whether using measured values or otherwise, a person using data in a meta-analysis may want to be able to use their own assumptions, or at least validate our assumptions. A broader, more "comprehensive" set of method codes could uniquely identify major variants of methods that may be encountered "in the wild" to further enhance interoperability.
 
 ```{r, echo=FALSE}
 knitr::kable(db_analytes[,c("analyte_name","analyte_abbrev","analyte_type")],
@@ -205,6 +268,8 @@ knitr::kable(db_analytes[,c("analyte_name","analyte_abbrev","analyte_type")],
 Bulk density _measurements_ are composited into what we call an _aggregate_ analyte. The `analyte_type` column distinguishes these records from records that are _derived_ from other analytes.
 
 Each one of the aggregate analytes types may have records for several specific method codes. For the KSSL's use of these databases internally, this mechanism has been employed to accomodate both external methods, as well as obsolesence of internal methods. 
+
+From a bare-minimum data quality standpoint users of the NCSS Characterization database want to make sure they are not causing duplication by method codes that should be mutually exclusive; e.g. combining measurements of oven dry bulk density with 1/3 bar for same `labsampnum`.
 
 "Aggregate" means we make repeated measures on subsamples to assess precision and accuracy for individual samples (`labsampnum`, layers or horizons in a soil profile), and a summary function is applied to yield the final value. For a soil property as fundamental and variable as bulk density, this is a pretty important thing to do for quality control. The measurements are prone to error, so sometimes it is important to have a sanity check.
 
@@ -391,16 +456,32 @@ any(dbcb_comparable1$labsampnum %in% dbcb_comparable2$labsampnum)
 nrow(dbcb_comparable1) + nrow(dbcb_comparable2) 
 ```
 
+
+### Conclusion
+
 Bulk density integrates many aspects of the soil fabric. Bulk density is describing how the soil "body" occupies space. Our measurement of bulk density is highly affected by the tools we use to extract a sample or measure the volume of a particular portion of soil material. It is also affected by whether (and to what degree) we consider water and/or rock fragments to be soil materials. This is discipline and region specific.
+
+#### Applied Example
 
 In the realm of carbon stocks, for instance, bulk density is a property to consider carefully. Given measured organic carbon contents in, say, grams per kilogram across depth [soil materials change over depth] your choice as an analyst of the soil bulk density-depth function _matters_ to the estimate of the carbon stocks ($kg/m^2$) over a depth interval. 
 
 The relevance of bulk density to carbon stocks can be seen in the classification of the Humults in U.S. Soil Taxonomy.
 
+**Here is an excerpt from the Ultisols suborder key:**
+
 **HB.** Other Ultisols that have _one or both_ of the following:
 
 1. 0.9 percent (by weighted average) or more organic carbon in the upper 15 cm of the argillic or kandic horizon; or
 
-2. $12 kg/m^2$ or more organic carbon between the mineral soil surface and a depth of 100 cm.
+2. $12 kg/m^2$ or more organic carbon between the mineral soil surface and a depth of 100 cm.'
+
+You will notice that criterion #1 is a carbon mass-percent weighted average, and criterion #2 is a carbon stock. See the Humults criteria demo for an exploration of soil carbon related taxonomic criteria in the _Humults_
    
  - [_Humults_ criteria example](humults.html)
+
+### References
+
+U.S. Department of Agriculture, Natural Resources Conservation Service. National Soil Survey Handbook (NSSH), title 430-VI. <http://www.nrcs.usda.gov/wps/portal/nrcs/detail/soils/ref/?cid=nrcs142p2_054242> (accessed 06 November 2020).
+
+Soil Survey Staff. 2014. Keys to Soil Taxonomy, 12th ed. USDA-Natural Resources Conservation Service, Washington, DC.
+<https://www.nrcs.usda.gov/wps/portal/nrcs/detail/soils/survey/class/taxonomy/?cid=nrcs142p2_053580>.
