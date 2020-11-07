@@ -96,7 +96,7 @@ In NASIS, there are still some important linkages to various internal databases 
 
 New delivery methods for the laboratory characterization data are a work in progress by the USDA-NRCS Soil Survey Staff. This effort would be greatly enhanced by collaboration with the Soil Ontology group. 
 
-```{r}
+```{r, fig.width=10, fig.height=10, echo=FALSE}
 library(soilDB)
 library(ggplot2)
 library(data.tree)
