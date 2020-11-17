@@ -21,3 +21,8 @@ all(dbListTables(con) == dbListTables(outcon))
 DBI::dbDisconnect(outcon)
 DBI::dbDisconnect(con)
 
+
+suppressWarnings({q <- try(sqlQuery(con, sprintf("SELECT * FROM %s", "pedon")))
+
+tblz <- RODBC::sqlTables(con)
+tblz$TABLE_NAME[grepl('pedon',tblz$TABLE_NAME)]

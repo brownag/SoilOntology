@@ -8,7 +8,7 @@ output: html_document
 knitr::opts_chunk$set(fig.retina = 3, warning = FALSE, message = FALSE, echo = FALSE)
 ```
  
-## Soil bulk density is fundamental to understanding soils.
+## Soil bulk density is fundamental to interpretation of laboratory data.
 
 There is a great deal more information on the topics referenced in this document in the [National Soil Survey Handbook (NSSH)](https://www.nrcs.usda.gov/wps/portal/nrcs/detail/soils/ref/?cid=nrcs142p2_054242), 
 
@@ -78,7 +78,7 @@ $C_p$ is the sum of organic carbon contents $C_i$ ($\%~by~mass$) multiplied by b
 
 The result is in units of  $kg/m^2$; where the 1-D definition is aggregation soil length over $n$ layers; so "stocks" are conventionally reported over a specific interval (e.g. 0 to 100 cm).
 
-$$Cp = \sum_{i=1}^{n}\left(\frac{C_i}{100} * D_{b, soil, i} * L_{i} * V_{fragments, i}\right)$$
+$$Cp = \sum_{i=1}^{n}\left(\frac{C_i}{100} * D_{b, i} * L_{i} * \left(1 - \frac{V_{fragments, i}}{V_{Whole~Soil, i}}\right)\right)$$
 
 The most appropriate "total fragment volume" (accounting for all size classes) for a layer often is not the same as what was observed in an individual sieved core or clod sample at the lab. However, the precision of e.g. visual estimates is certainly not as reliable as the portions measured in the lab. There is a balance that needs to be struck based on applications of an analysis or their scope.
 
