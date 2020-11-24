@@ -8,6 +8,8 @@ output:
     toc_float:
       collapsed: true
       smooth_scroll: true
+    mathjax: "js/mathjax-local/MathJax.js"
+    self_contained: false
 ---
 ```{r setup, echo = FALSE, message = FALSE, warning = FALSE}
 knitr::opts_chunk$set(fig.retina = 3, warning = FALSE, message = FALSE, echo = FALSE)
