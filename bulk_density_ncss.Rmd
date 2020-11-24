@@ -8,8 +8,6 @@ output:
     toc_float:
       collapsed: true
       smooth_scroll: true
-    mathjax: "js/mathjax-local/MathJax.js"
-    self_contained: false
 ---
 ```{r setup, echo = FALSE, message = FALSE, warning = FALSE}
 knitr::opts_chunk$set(fig.retina = 3, warning = FALSE, message = FALSE, echo = FALSE)
@@ -238,7 +236,7 @@ db_analytes_unpaired$proced_code[grepl("aggregate", db_analytes_unpaired$analyte
 db_analytes2 <- rbind(db_analytes2, db_analytes_unpaired)
 ```
 
-Note that this attempts to show the relationships between "analytes" and "methods" but a couple linkages are not present in this snapshot to do this properly. Using some heuristics here to 
+Note that this attempts to show the relationships between "analytes" and "methods" but a couple linkages are not present in this snapshot to do this properly. Using some heuristics here to make some linkages that in part cannot be determined from the data in the snapshot.
 
 ```{r, fig.width=10, fig.height=10, echo=FALSE}
 set.seed(544)
@@ -293,7 +291,7 @@ db_analytes_agg <- subset(db_analytes, analyte_type == "aggregate analyte" | ana
 analytes_der <- subset(analytes, analyte_type == "derived_analyte")
 ```
 
-So, if bulk density is so important, how can we show this? The `analyte_algorithm` contains an expression that can be evaluated to calculate a _derived_ analyte from other analytes. We will search that field to find dependencies.
+So, if bulk density is so important, how can we show this? The `analyte_algorithm` contains an expression that can be evaluated to calculate a _derived_ analyte from other analytes. We will search that field to find dependendent values.
 
 ```{R}
 # calculate derived analytes that depend on the aggregate analytes
@@ -325,7 +323,9 @@ for (y in rev(seq_along(db_analytes_agg_idx))) {
 }
 ```
 
-OK, we see that most of these methods are not used as inputs to derived analytes, but the first two (_`r paste0(head( rev(names(db_analytes_agg_idx)), 2), collapse = ", ")`_) have many dependencies. Let's compare the data we have, before going down a rabbit hole on all of these methods. 
+OK, we see that most of these methods are not used as inputs to derived analytes, but the first two (_`r paste0(head( rev(names(db_analytes_agg_idx)), 2), collapse = ", ")`_) have many dependendents. 
+
+Let's compare the data we have, before going down a rabbit hole on all of these different methods. 
 
 First, we build some comparable datasets; we take the "long format" table subsets queried from `lab_physical_properties ` and merge so we have records that are 1:1 with `labsampnum`. Query 0.33 kPa and oven-dry data, ignoring specific method codes within classes.
 
