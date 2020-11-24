@@ -1,7 +1,7 @@
 ---
 title: "Humults Demo"
 author: "Andrew G. Brown"
-date: "10/29/2020"
+date: "11/24/2020" 
 output: html_document
 ---
   
@@ -80,21 +80,34 @@ clayslab <- subset(dataslab, variable == "clay")
 depths(clayslab) <- all.profiles ~ top + bottom
 hzdesgnname(clayslab) <- "hzID"
 
-
 # using default mpspline2 lambda 
 clayspline <- spc2mpspline(clayslab, "p.q50", lam = 0.1)
 ocspline <- spc2mpspline(ocslab, "p.q50", lam = 0.1)
 dbspline <- spc2mpspline(dbslab, "p.q50", lam = 0.1)
 fragspline <- spc2mpspline(fragslab, "p.q50", lam = 0.1)
 
+# TODO: generalize
+
 # combine/rename splines and original data
 ocspline$spline_q50_oc <- ocspline$p.q50_spline
 ocspline$spline_q50_db13 <- dbspline$p.q50_spline
 ocspline$spline_q50_clay <- clayspline$p.q50_spline
 ocspline$spline_q50_frags <- fragspline$p.q50_spline
-ocspline$q50_db13 <- dbspline$p.q50
-ocspline$q50_clay <- clayspline$p.q50
-ocspline$q50_frags <- fragspline$p.q50
+
+ocspline$p.q25 <- ocslab$p.q25
+ocspline$p.q75 <- ocslab$p.q75
+
+ocspline$q50_db13 <- dbslab$p.q50
+ocspline$q50_clay <- clayslab$p.q50
+ocspline$q50_frags <- fragslab$p.q50
+
+ocspline$q25_db13 <- dbslab$p.q25
+ocspline$q25_clay <- clayslab$p.q25
+ocspline$q25_frags <- fragslab$p.q25
+
+ocspline$q75_db13 <- dbslab$p.q75
+ocspline$q75_clay <- clayslab$p.q75
+ocspline$q75_frags <- fragslab$p.q75
 ```
 
 ### Inspect median splines
@@ -102,34 +115,42 @@ ocspline$q50_frags <- fragspline$p.q50
 ```{r, echo=FALSE}
 ggplot(horizons(ocspline)) + 
   scale_y_reverse() +
-  labs(title = "Spline + 1cm Slab Median Organic Carbon Content\nMLRA 18 & 22A Soils with Argillic Horizons",
+  labs(title = "Spline + 1cm Slab Median + IQR Organic Carbon Content\nMLRA 18 & 22A Soils with Argillic Horizons",
        x = "Organic Carbon [% by mass]", y = "Depth [cm]") +
   geom_path(aes(x = spline_q50_oc, y = top), linetype = 1, lwd = 1.5) +
+  geom_path(aes(x = p.q25, y = top), linetype = 3) +
   geom_path(aes(x = p.q50, y = top), linetype = 3) +
+  geom_path(aes(x = p.q75, y = top), linetype = 3) +
   theme_bw() + expand_limits(x=c(0,3))
 
 ggplot(horizons(ocspline)) + 
   scale_y_reverse() +
-  labs(title = "Spline + 1cm Slab Median Field-capacity Bulk Density\nMLRA 18 & 22A Soils with Argillic Horizons",
+  labs(title = "Spline + 1cm Slab Median + IQR Field-capacity Bulk Density\nMLRA 18 & 22A Soils with Argillic Horizons",
        x = "Bulk Density, 0.33 kPa, [g/cc]", y = "Depth [cm]") +
   geom_path(aes(x = spline_q50_db13, y = top), linetype = 1, lwd = 1.5) +
+  geom_path(aes(x = q25_db13, y = top), linetype = 3) +
   geom_path(aes(x = q50_db13, y = top), linetype = 3) +
+  geom_path(aes(x = q75_db13, y = top), linetype = 3) +
   theme_bw() + expand_limits(x = c(1.00, 1.6))
 
 ggplot(horizons(ocspline)) + 
   scale_y_reverse() +
-  labs(title = "Spline + 1cm Slab Median Fragment Volume\nMLRA 18 & 22A Soils with Argillic Horizons",
+  labs(title = "Spline + 1cm Slab Median + IQR Fragment Volume\nMLRA 18 & 22A Soils with Argillic Horizons",
        x = "Estimated Fragment Volume [%]", y = "Depth [cm]") +
   geom_path(aes(x = spline_q50_frags, y = top), linetype = 1, lwd = 1.5) +
+  geom_path(aes(x = q25_frags, y = top), linetype = 3) +
   geom_path(aes(x = q50_frags, y = top), linetype = 3) +
+  geom_path(aes(x = q75_frags, y = top), linetype = 3) +
   theme_bw() + expand_limits(x = c(0, 35))
 
 ggplot(horizons(ocspline)) + 
   scale_y_reverse() +
-  labs(title = "Spline + 1cm Slab Median Total Clay Content\nMLRA 18 & 22A Soils with Argillic Horizons",
+  labs(title = "Spline + 1cm Slab Median + IQR Total Clay Content\nMLRA 18 & 22A Soils with Argillic Horizons",
        x = "Total Clay Content [%]", y = "Depth [cm]") +
   geom_path(aes(x = spline_q50_clay, y = top), linetype = 1, lwd = 1.5) +
+  geom_path(aes(x = q25_clay, y = top), linetype = 3) + 
   geom_path(aes(x = q50_clay, y = top), linetype = 3) + 
+  geom_path(aes(x = q75_clay, y = top), linetype = 3) + 
   theme_bw() + expand_limits(x = c(0, 35))
 ```
 

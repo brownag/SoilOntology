@@ -1,4 +1,5 @@
 library(soilDB)
+library(data.tree)
 
 analytes <- SDA_query("SELECT * from lab_analyte")
 
@@ -13,7 +14,4 @@ analyte.sub$pathString <- paste("NCSSC_BulkDensity",
                                  sep = "/")
 analyte.sub <- as.Node(analyte.sub)
 
-library(networkD3)
-par(mar=c(0,0,0,0))
-useRtreeList <- ToListExplicit(analyte.sub, unname = TRUE)
-radialNetwork(useRtreeList, fontSize = 18)
+plot(analyte.sub, output="visNetwork")

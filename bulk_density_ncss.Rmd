@@ -6,8 +6,8 @@ output:
   html_document:
     toc: true
     toc_float:
-      collapsed: false
-      smooth_scroll: false
+      collapsed: true
+      smooth_scroll: true
 ---
 ```{r setup, echo = FALSE, message = FALSE, warning = FALSE}
 knitr::opts_chunk$set(fig.retina = 3, warning = FALSE, message = FALSE, echo = FALSE)
