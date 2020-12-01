@@ -1,9 +1,11 @@
 ---
 title: "Bulk Density in the National Cooperative Soil Survey Characterization Database and beyond"
 author: "Andrew G. Brown"
-date: "11/24/2020" 
+date: "`r Sys.Date()`"
 output: 
   html_document:
+    self_contained: FALSE
+    mathjax: local
     toc: true
     toc_float:
       collapsed: true
@@ -115,7 +117,6 @@ New delivery methods for the laboratory characterization data are a work in prog
 library(soilDB)
 library(ggplot2)
 library(data.tree)
-library(networkD3)
 
 methods <- SDA_query("SELECT DISTINCT procedure_key, proced_abbrev, requested_anal_name, 
                      proced_name, proced_code, proced_desc FROM lab_method_code")
@@ -130,7 +131,7 @@ methods$path <- sprintf("%s|%s|%s", 'NCSS Lab Methods',  methods$method_group, m
 
 # init data.tree from path, attaching additional columns to leaves
 res <- as.Node(methods, pathName = 'path', pathDelimiter = '|')
-plot(res, output = "visNetwork")
+# plot(res, output = "visNetwork")
 
 ## salvage relationships by reverse engineering from physical/chemical properties tables
 phys_names <- colnames(SDA_query("SELECT TOP(1) * from lab_physical_properties"))
@@ -246,7 +247,7 @@ db_analytes2$pathString <- paste("NCSSC_BulkDensity",
                             db_analytes2$proced_code,
                             sep = "/")
 
-plot(as.Node(db_analytes2), output = "visNetwork")
+# plot(as.Node(db_analytes2), output = "visNetwork")
 ```
 
 ```{r, fig.width=10, fig.height=10, echo=FALSE}
@@ -261,7 +262,7 @@ analyte.sub$pathString <- paste("NCSSC_analytes",
                                  sep = "/")
 analyte.sub <- as.Node(analyte.sub)
 
-plot(analyte.sub, output = "visNetwork")
+# plot(analyte.sub, output = "visNetwork")
 ```
 
 Assumptions in derived values need to be made clear up front. Some commonly used values relating to saturation, "field capacity" and 15 bar moisture are actually _derived_ from other measurements. 
@@ -323,11 +324,11 @@ for (y in rev(seq_along(db_analytes_agg_idx))) {
 }
 ```
 
-OK, we see that most of these methods are not used as inputs to derived analytes, but the first two (_`r paste0(head( rev(names(db_analytes_agg_idx)), 2), collapse = ", ")`_) have many dependendents. 
+OK, we see that most of these methods are not used as inputs to derived analytes, but the first two (_`r paste0(head( rev(names(db_analytes_agg_idx)), 2), collapse = ", ")`_) have many dependents. 
 
 Let's compare the data we have, before going down a rabbit hole on all of these different methods. 
 
-First, we build some comparable datasets; we take the "long format" table subsets queried from `lab_physical_properties ` and merge so we have records that are 1:1 with `labsampnum`. Query 0.33 kPa and oven-dry data, ignoring specific method codes within classes.
+First, we build some comparable datasets; we take the "long format" table subsets queried from `lab_physical_properties` and merge so we have records that are 1:1 with `labsampnum`. Query 0.33 kPa and oven-dry data, ignoring specific method codes within classes.
 
 ```{r, echo=TRUE}
 if (!file.exists("sda_db_common.rda")) {
