@@ -13,7 +13,7 @@
 
 <meta name="date" content="2020-12-01" />
 
-<title>Bulk Density in the National Cooperative Soil Survey Characterization Database and beyond</title>
+<title>Bulk Density in the National Cooperative Soil Survey Characterization (NCSSC) Database and Beyond</title>
 
 <script src="bulk_density_ncss_files/jquery-1.11.3/jquery.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -263,7 +263,7 @@ div.tocify {
 
 
 
-<h1 class="title toc-ignore">Bulk Density in the National Cooperative Soil Survey Characterization Database and beyond</h1>
+<h1 class="title toc-ignore">Bulk Density in the National Cooperative Soil Survey Characterization (NCSSC) Database and Beyond</h1>
 <h4 class="author">Andrew G. Brown</h4>
 <h4 class="date">2020-12-01</h4>
 
@@ -274,6 +274,11 @@ div.tocify {
 <h2>Soil Bulk Density</h2>
 <p>There is a great deal more information on the topics referenced in this document in the <a href="https://www.nrcs.usda.gov/wps/portal/nrcs/detail/soils/ref/?cid=nrcs142p2_054242">National Soil Survey Handbook (NSSH)</a>,</p>
 <p>Soil particle size distribution, mineralogy, grain packing, soil depth, and organic matter content are among the major properties affecting the bulk densities we observe in soil materials (NSSH, parts 618.32 “Rock fragments in the soil”, 618.44 “Organic Matter”, 618.45 “Parent Material, Kind, Modifier, and Origin”)</p>
+<p>Here are two links to graph diagrams showing relationships between analytes and also between bulk density methods specifically within the NCSSC database:</p>
+<ul>
+<li><p><a href="ncss_analyte_graph.html">NCSSC Database Analyte Graph</a></p></li>
+<li><p><a href="ncss_bulk_density_derived_graph.html">NCSSC Aggregate to Derived Bulk Density and their Dependencies</a></p></li>
+</ul>
 <div id="soil-materials" class="section level3">
 <h3>Soil Materials</h3>
 <p>In the USDA system we have mineral and organic <em>soil materials</em> (Keys to Soil Taxonomy, 12th edition, p. 3).</p>
@@ -344,10 +349,9 @@ div.tocify {
 <p>There is a significant amount of information and metadata stored in the collective group of databases that feed into NASIS (the National Soil Information System).</p>
 <p>In NASIS, there are still some important linkages to various internal databases held together by dedicated software and manual interventions. Recognizing important linkages within the database currently requires some insider knowledge. It would be good to make some of these linkages more explicit, transparent and portable.</p>
 <p>New delivery methods for the laboratory characterization data are a work in progress by the USDA-NRCS Soil Survey Staff. This effort would be greatly enhanced by collaboration with the Soil Ontology group.</p>
-<p>Note that this attempts to show the relationships between “analytes” and “methods” but a couple linkages are not present in this snapshot to do this properly. Using some heuristics here to make some linkages that in part cannot be determined from the data in the snapshot.</p>
 <p>Assumptions in derived values need to be made clear up front. Some commonly used values relating to saturation, “field capacity” and 15 bar moisture are actually <em>derived</em> from other measurements.</p>
 <div id="correlation-and-pedotransfer-functions" class="section level3">
-<h3>Correlation and "pedotransfer functions</h3>
+<h3>Correlation and pedotransfer functions</h3>
 <p>It is possible with well-correlated data to estimate conversions between different bases, given other soil properties. This is something we do routinely in NASIS. If this is a goal, it is absolutely critical that primary data with the relevant metadata get allocated <em>near as possible</em> to their “correct” method.</p>
 <p>Whether using measured values or otherwise, a person using data in a meta-analysis may want to be able to use their own assumptions, or at least validate our assumptions. A broader, more “comprehensive” set of method codes could uniquely identify major variants of methods that may be encountered “in the wild” to further enhance interoperability.</p>
 <table>
@@ -879,7 +883,7 @@ div.tocify {
 </tr>
 </tbody>
 </table>
-<p>OK, we see that most of these methods are not used as inputs to derived analytes, but the first two (<em>Bulk Density, &lt;2mm Fraction, 1/3 Bar, Bulk Density, &lt;2mm Fraction, Ovendry</em>) have many dependendents.</p>
+<p>OK, we see that most of these methods are not used as inputs to derived analytes, but the first two (<em>Bulk Density, &lt;2mm Fraction, 1/3 Bar, Bulk Density, &lt;2mm Fraction, Ovendry</em>) have many dependents.</p>
 <p>Let’s compare the data we have, before going down a rabbit hole on all of these different methods.</p>
 <p>First, we build some comparable datasets; we take the “long format” table subsets queried from <code>lab_physical_properties</code> and merge so we have records that are 1:1 with <code>labsampnum</code>. Query 0.33 kPa and oven-dry data, ignoring specific method codes within classes.</p>
 <pre class="r"><code>if (!file.exists(&quot;sda_db_common.rda&quot;)) {
@@ -986,7 +990,7 @@ div.tocify {
 </tr>
 </tbody>
 </table>
-<p><img src="bulk_density_ncss_files/figure-html/unnamed-chunk-15-1.png" width="672" /><img src="bulk_density_ncss_files/figure-html/unnamed-chunk-15-2.png" width="672" /></p>
+<p><img src="bulk_density_ncss_files/figure-html/unnamed-chunk-13-1.png" width="672" /><img src="bulk_density_ncss_files/figure-html/unnamed-chunk-13-2.png" width="672" /></p>
 <table>
 <thead>
 <tr class="header">
@@ -1046,7 +1050,7 @@ div.tocify {
 </tr>
 </tbody>
 </table>
-<p><img src="bulk_density_ncss_files/figure-html/unnamed-chunk-18-1.png" width="672" /><img src="bulk_density_ncss_files/figure-html/unnamed-chunk-18-2.png" width="672" /></p>
+<p><img src="bulk_density_ncss_files/figure-html/unnamed-chunk-16-1.png" width="672" /><img src="bulk_density_ncss_files/figure-html/unnamed-chunk-16-2.png" width="672" /></p>
 <table>
 <thead>
 <tr class="header">
@@ -1109,7 +1113,7 @@ div.tocify {
 </tr>
 </tbody>
 </table>
-<p><img src="bulk_density_ncss_files/figure-html/unnamed-chunk-22-1.png" width="672" /><img src="bulk_density_ncss_files/figure-html/unnamed-chunk-22-2.png" width="672" /></p>
+<p><img src="bulk_density_ncss_files/figure-html/unnamed-chunk-20-1.png" width="672" /><img src="bulk_density_ncss_files/figure-html/unnamed-chunk-20-2.png" width="672" /></p>
 <table>
 <thead>
 <tr class="header">

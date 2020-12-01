@@ -1,0 +1,168 @@
+---
+title: "NCSSC Aggregate to Derived Bulk Density and their Dependencies"
+author: "Andrew G. Brown"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    theme: NULL
+    template: NULL
+    mathjax: NULL
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+```{r}
+library(soilDB)
+library(ggplot2)
+library(data.tree)
+
+methods <- SDA_query("SELECT DISTINCT procedure_key, proced_abbrev, requested_anal_name, 
+                     proced_name, proced_code, proced_desc FROM lab_method_code")
+# clean whitespace
+methods$requested_anal_name <- trimws(methods$requested_anal_name)
+
+# extract method group if available (Bulk Density, ....) <- before the comma
+methods$method_group <- as.character(lapply(strsplit(methods$requested_anal_name, ",", TRUE), function(x) x[[1]]))
+
+# build data.tree path: [root] -> [method group] -> [analysis name] -> [procedure name] -> [procedure code + (description)]
+methods$path <- sprintf("%s|%s|%s", 'NCSS Lab Methods',  methods$method_group, methods$proced_code)
+
+# init data.tree from path, attaching additional columns to leaves
+res <- as.Node(methods, pathName = 'path', pathDelimiter = '|')
+# plot(res, output = "visNetwork")
+
+## salvage relationships by reverse engineering from physical/chemical properties tables
+phys_names <- colnames(SDA_query("SELECT TOP(1) * from lab_physical_properties"))
+idx <- grep("method$", phys_names)
+phys_measure_names <- phys_names[idx - 1]
+phys_measure_methods <- phys_names[idx]
+# nb: check  "estimated_om_plus_mineral"         "fiber_analysis_method"
+
+# focus just on Db
+db.idx <- grep("bulk_de|bd_", phys_measure_methods)
+db_measur_cols <- phys_measure_names[db.idx]
+db_method_cols <- phys_measure_methods[db.idx]
+
+if (!file.exists("db_data_methods_table.rda")) {
+  # identify method codes referenced for each "data" column
+  db_data_methods_table <- data.table::rbindlist(lapply(db_method_cols, function(x) {
+    SDA_query(sprintf("SELECT %s FROM lab_physical_properties WHERE %s != ''", x, x))
+  }), fill = TRUE)
+  save(db_data_methods_table, file = "db_data_methods_table.rda")
+} else {
+  load("db_data_methods_table.rda")
+}
+db_data_methods <- apply(as.data.frame(db_data_methods_table), 2, unique)
+
+# lapply(db_data_methods, function(x) db_methods[na.omit(match(x, db_methods$proced_code)),])
+
+# get the analyte table
+analytes <- SDA_query("SELECT * from lab_analyte")
+
+# filter for bulk density related analytes
+db_analytes <- subset(analytes, grepl("db_", analyte_abbrev))
+
+# change some things to match tokens based on column names in database
+db_analytes$analyte_name_clean <- gsub("Bulk Density","Bulk Density Db",db_analytes$analyte_name)
+db_analytes$analyte_name_clean <- gsub("1/3","third thirdbar",db_analytes$analyte_name)
+db_analytes$analyte_name_clean <- gsub("<","lt",db_analytes$analyte_name_clean)
+db_analytes$analyte_name_clean <- gsub("1/10","tenth tenthbar",db_analytes$analyte_name_clean)
+
+db_methods <- subset(methods, method_group == "Bulk Density")
+db_methods$requested_anal_name_clean <- gsub("1/3","third thirdbar",db_methods$requested_anal_name)
+db_methods$requested_anal_name_clean <- gsub("<","lt",db_methods$requested_anal_name_clean)
+db_methods$requested_anal_name_clean <- gsub("1/10","tenth tenthbar",db_methods$requested_anal_name_clean)
+
+# the DbWR1 method code is used for multiple moisture states
+moisture_states <- db_methods[c(1:2,1:2),]
+moisture_states$requested_anal_name_clean <- paste0(moisture_states$requested_anal_name_clean, rep(c(" third thirdbar", 
+                                                                                                     " oven dry")))
+db_methods <- rbind(moisture_states, db_methods[2:nrow(db_methods),])
+
+tokens <- lapply(lapply(db_measur_cols, strsplit, "_"), function(x) x[[1]])
+matching_analytes <- lapply(lapply(tokens, function(mtokens) {
+    res <- lapply(mtokens, function(token) {
+      grepl(token, db_analytes$analyte_name_clean, ignore.case = TRUE)
+    })
+    return(res)
+  }), function(x) {
+    y <- rowSums(do.call('cbind', x))
+    db_analytes[which(y == max(y)),]
+  })
+good_analytes <- do.call('rbind', lapply(1:length(matching_analytes), function(z) { 
+    if(nrow(matching_analytes[[z]])) {
+      matching_analytes[[z]]$name <- db_measur_cols[z] 
+      matching_analytes[[z]]$aid <- 1:nrow(matching_analytes[[z]])
+      matching_analytes[[z]]
+    }
+  }))
+# take first and most specific column name from analyte table only
+best_analytes <- do.call('rbind', lapply(split(good_analytes, good_analytes$analyte_name_clean), function(x) {
+    return(x[which(nchar(x$name) == max(nchar(x$name)))[1],])
+  }))
+
+# TODO: abstract this beast
+matching_methods <- lapply(lapply(tokens, function(mtokens) {
+  res <- lapply(mtokens, function(token) {
+    grepl(token, db_methods$requested_anal_name_clean, ignore.case = TRUE)
+  })
+  return(res)
+}), function(x) {
+  y <- rowSums(do.call('cbind', x))
+  db_methods[which(y == max(y)),]
+})
+db_data_methods_num <- db_data_methods
+names(db_data_methods_num) <- NULL
+best_methods <- do.call('rbind', lapply(1:length(matching_methods), function(z) { 
+  matching_methods[[z]] <- subset(matching_methods[[z]], proced_code %in% db_data_methods_num[[z]])
+  if (nrow(matching_methods[[z]])) {
+     matching_methods[[z]]$name <- db_measur_cols[z] 
+     matching_methods[[z]]$mid <- 1:nrow(matching_methods[[z]])
+     matching_methods[[z]]
+  }
+}))
+
+# 25 different analytes (method classes) in NCSS characterization database contain prefix db_
+# they all pertain to bulk density
+# nrow(db_analytes)
+
+db_analytes2 <- merge(best_analytes, best_methods)[,c("analyte_type", "aid", "analyte_abbrev", "mid", "proced_code")]
+db_analytes_unpaired <- db_analytes[!(db_analytes$analyte_abbrev %in% db_analytes2$analyte_abbrev), c("analyte_type", "analyte_abbrev")]
+db_analytes_unpaired$aid <- 1
+db_analytes_unpaired$mid <- 1
+db_analytes_unpaired$proced_code <- "No method code"
+db_analytes_unpaired$proced_code[grepl("aggregate", db_analytes_unpaired$analyte_type)] <- "Not in snapshot?"
+db_analytes2 <- rbind(db_analytes2, db_analytes_unpaired)
+```
+
+Note that this attempts to show the relationships between "analytes" and "methods" but a couple linkages are not present in this snapshot to do this properly. Using some heuristics here to make some linkages that in part cannot be determined from the data in the snapshot.
+
+```{r, fig.width=20, fig.height=10, echo=FALSE}
+set.seed(544)
+db_analytes2$pathString <- paste("NCSSC_BulkDensity", 
+                            db_analytes2$analyte_type, 
+                            db_analytes2$analyte_abbrev, 
+                            db_analytes2$proced_code,
+                            sep = "/")
+
+plot(as.Node(db_analytes2), output = "visNetwork")
+```
+
+This shows some first-level dependencies (analytes that are calculated from one of the aggregate bulk density analytes)
+
+```{r, fig.width=20, fig.height=10, echo=FALSE}
+res <- lapply(analytes$analyte_abbrev, grepl, analytes$analyte_algorithm)
+analyte.sub <- analytes[do.call('c', lapply(res, which)),]
+analyte.sub$analyte_size_frac_base[is.na(analyte.sub$analyte_size_frac_base)] <- "NONE"
+
+analyte.sub$pathString <- paste("NCSSC_analytes", 
+                                 analyte.sub$analyte_type, 
+                                 analyte.sub$analyte_size_frac_base,
+                                 analyte.sub$analyte_abbrev,
+                                 sep = "/")
+analyte.sub <- as.Node(analyte.sub)
+
+plot(analyte.sub, output = "visNetwork")
+```

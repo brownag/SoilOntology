@@ -1,5 +1,5 @@
 ---
-title: "Bulk Density in the National Cooperative Soil Survey Characterization Database and beyond"
+title: "Bulk Density in the National Cooperative Soil Survey Characterization (NCSSC) Database and Beyond"
 author: "Andrew G. Brown"
 date: "`r Sys.Date()`"
 output: 
@@ -20,6 +20,12 @@ knitr::opts_chunk$set(fig.retina = 3, warning = FALSE, message = FALSE, echo = F
 There is a great deal more information on the topics referenced in this document in the [National Soil Survey Handbook (NSSH)](https://www.nrcs.usda.gov/wps/portal/nrcs/detail/soils/ref/?cid=nrcs142p2_054242), 
 
 Soil particle size distribution, mineralogy, grain packing, soil depth, and organic matter content are among the major properties affecting the bulk densities we observe in soil materials (NSSH, parts 618.32 "Rock fragments in the soil", 618.44 "Organic Matter", 618.45 "Parent Material, Kind, Modifier, and Origin")
+
+Here are two links to graph diagrams showing relationships between analytes and also between bulk density methods specifically within the NCSSC database:
+
+ - [NCSSC Database Analyte Graph](ncss_analyte_graph.html)
+ 
+ - [NCSSC Aggregate to Derived Bulk Density and their Dependencies](ncss_bulk_density_derived_graph.html)
 
 ### Soil Materials
 
@@ -237,37 +243,9 @@ db_analytes_unpaired$proced_code[grepl("aggregate", db_analytes_unpaired$analyte
 db_analytes2 <- rbind(db_analytes2, db_analytes_unpaired)
 ```
 
-Note that this attempts to show the relationships between "analytes" and "methods" but a couple linkages are not present in this snapshot to do this properly. Using some heuristics here to make some linkages that in part cannot be determined from the data in the snapshot.
-
-```{r, fig.width=10, fig.height=10, echo=FALSE}
-set.seed(544)
-db_analytes2$pathString <- paste("NCSSC_BulkDensity", 
-                            db_analytes2$analyte_type, 
-                            db_analytes2$analyte_abbrev, 
-                            db_analytes2$proced_code,
-                            sep = "/")
-
-# plot(as.Node(db_analytes2), output = "visNetwork")
-```
-
-```{r, fig.width=10, fig.height=10, echo=FALSE}
-res <- lapply(analytes$analyte_abbrev, grepl, analytes$analyte_algorithm)
-analyte.sub <- analytes[do.call('c', lapply(res, which)),]
-analyte.sub$analyte_size_frac_base[is.na(analyte.sub$analyte_size_frac_base)] <- "NONE"
-
-analyte.sub$pathString <- paste("NCSSC_analytes", 
-                                 analyte.sub$analyte_type, 
-                                 analyte.sub$analyte_size_frac_base,
-                                 analyte.sub$analyte_abbrev,
-                                 sep = "/")
-analyte.sub <- as.Node(analyte.sub)
-
-# plot(analyte.sub, output = "visNetwork")
-```
-
 Assumptions in derived values need to be made clear up front. Some commonly used values relating to saturation, "field capacity" and 15 bar moisture are actually _derived_ from other measurements. 
 
-### Correlation and "pedotransfer functions
+### Correlation and pedotransfer functions
 
 It is possible with well-correlated data to estimate conversions between different bases, given other soil properties. This is something we do routinely in NASIS. If this is a goal, it is absolutely critical that primary data with the relevant metadata get allocated _near as possible_ to their "correct" method. 
 
