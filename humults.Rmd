@@ -1,8 +1,11 @@
 ---
 title: "Humults Demo"
 author: "Andrew G. Brown"
-date: "11/24/2020" 
-output: html_document
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    self_contained: FALSE
+    mathjax: local
 ---
   
 ```{r setup, echo = FALSE, message = FALSE, warning = FALSE}
@@ -57,14 +60,14 @@ argisub <- glomApply(argisub,
 ```{r}
 ## OC slab
 ## 
-dataslab <- slab(argisub, ~ oc + clay + db_od + frags)
+dataslab <- slab(argisub, ~ oc + clay + db_13b + frags)
 ocslab <- subset(dataslab, variable == "oc")
 depths(ocslab) <- all.profiles ~ top + bottom
 hzdesgnname(ocslab) <- "hzID"
 
 ## Db slab
 ## 
-dbslab <- subset(dataslab, variable == "db_od")
+dbslab <- subset(dataslab, variable == "db_13b")
 depths(dbslab) <- all.profiles ~ top + bottom
 hzdesgnname(dbslab) <- "hzID"
 
@@ -197,8 +200,7 @@ sum(medianstock)
 sum(medianstock_withfrags) 
 ```
 
-The median spline soil with an argillic horizon just barely makes the carbon requirement for Humults near 90cm depth.
-When we account for rock fragments not having the same bulk characteristics as soil material, we find the threshold is not met. This is consistent with expectation about prevalence of Humults.
+Whether or not we account for rock fragments not having the same bulk characteristics as soil material, we find the threshold is not met. This is consistent with expectation about prevalence of Humults.
 
 Soils in these landscapes may have a bedrock contact within 100cm, or may have more than the average amount of fragments. Those factors alone likely preclude the $12 kg/m^2$ criterion in many cases. Further, here are no parallel criteria in the Alfisols, Mollisols or Inceptisols, so this is the not the only thing determining whether you are a Humult (base saturation, carbon in upper argillic), per se.
 
