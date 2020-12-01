@@ -21,7 +21,7 @@ There is a great deal more information on the topics referenced in this document
 
 Soil particle size distribution, mineralogy, grain packing, soil depth, and organic matter content are among the major properties affecting the bulk densities we observe in soil materials (NSSH, parts 618.32 "Rock fragments in the soil", 618.44 "Organic Matter", 618.45 "Parent Material, Kind, Modifier, and Origin")
 
-Here are two links to graph diagrams showing relationships within procedures, analytes and also between bulk density methods specifically within the NCSSC database:
+Here are three links to graph diagrams showing relationships within procedures, analytes and also between bulk density methods specifically within the NCSSC database:
 
  - [NCSSC Database Analyte Graph](ncss_analyte_graph.html)
  
@@ -33,7 +33,7 @@ Here are two links to graph diagrams showing relationships within procedures, an
 
 In the USDA system we have mineral and organic _soil materials_ (Keys to Soil Taxonomy, 12th edition, p. 3). 
 
-_Mineral soil materials_ are particles passing a 2.0 mm sieve with carbon content (by weight) less than a threshold. The definition in  takes into account water saturation of the soil and clay content to the threshold. _Organic soil materials_ are defined as materials exceeding the carbon thresholds for mineral soil materials.
+_Mineral soil materials_ are particles passing a 2.0 mm sieve with carbon content (by weight) less than a threshold. The definition in NSSH takes into account water saturation of the soil and clay content to the threshold. _Organic soil materials_ are defined as materials exceeding the carbon thresholds for mineral soil materials.
 
 ### The "Whole Soil" basis
 
