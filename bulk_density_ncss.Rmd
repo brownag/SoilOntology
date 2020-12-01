@@ -21,9 +21,11 @@ There is a great deal more information on the topics referenced in this document
 
 Soil particle size distribution, mineralogy, grain packing, soil depth, and organic matter content are among the major properties affecting the bulk densities we observe in soil materials (NSSH, parts 618.32 "Rock fragments in the soil", 618.44 "Organic Matter", 618.45 "Parent Material, Kind, Modifier, and Origin")
 
-Here are two links to graph diagrams showing relationships between analytes and also between bulk density methods specifically within the NCSSC database:
+Here are two links to graph diagrams showing relationships within procedures, analytes and also between bulk density methods specifically within the NCSSC database:
 
  - [NCSSC Database Analyte Graph](ncss_analyte_graph.html)
+ 
+ - [NCSSC Database Procedure Graph](ncss_procedure_graph.html)
  
  - [NCSSC Aggregate to Derived Bulk Density and their Dependencies](ncss_bulk_density_derived_graph.html)
 
@@ -138,7 +140,7 @@ methods$path <- sprintf("%s|%s|%s", 'NCSS Lab Methods',  methods$method_group, m
 # init data.tree from path, attaching additional columns to leaves
 res <- as.Node(methods, pathName = 'path', pathDelimiter = '|')
 # plot(res, output = "visNetwork")
-
+plot(res, output = "visNetwork")
 ## salvage relationships by reverse engineering from physical/chemical properties tables
 phys_names <- colnames(SDA_query("SELECT TOP(1) * from lab_physical_properties"))
 idx <- grep("method$", phys_names)

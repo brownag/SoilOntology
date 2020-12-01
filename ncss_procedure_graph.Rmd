@@ -1,0 +1,40 @@
+---
+title: "NCSSC Database Procedure Graph"
+author: "Andrew G. Brown"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    theme: NULL
+    template: NULL
+    mathjax: NULL
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+## NCSSC Database Procedure Graph
+
+Visualization of data in `lab_method_code` table of [Soil Data Access](https://sdmdataaccess.nrcs.usda.gov/)
+
+Using query `"SELECT DISTINCT procedure_key, proced_abbrev, requested_anal_name, proced_name, proced_code, proced_desc FROM lab_method_code"` and pathString `SDA_lab_method_code/[method_group]/[proced_code]`
+
+```{r, fig.width=14, fig.height=14}
+library(soilDB)
+library(data.tree)
+
+methods <- SDA_query("SELECT DISTINCT procedure_key, proced_abbrev, requested_anal_name, 
+                     proced_name, proced_code, proced_desc FROM lab_method_code")
+# clean whitespace
+methods$requested_anal_name <- trimws(methods$requested_anal_name)
+
+# extract method group if available (Bulk Density, ....) <- before the comma
+methods$method_group <- as.character(lapply(strsplit(methods$requested_anal_name, ",", TRUE), function(x) x[[1]]))
+
+# build data.tree path: [root] -> [method group] -> [analysis name] -> [procedure name] -> [procedure code + (description)]
+methods$path <- sprintf("%s|%s|%s", 'SDA_lab_method_code',  methods$method_group, methods$proced_code)
+
+# init data.tree from path, attaching additional columns to leaves
+res <- as.Node(methods, pathName = 'path', pathDelimiter = '|')
+plot(res, output = "visNetwork")
+```
