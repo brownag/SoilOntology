@@ -140,7 +140,7 @@ methods$path <- sprintf("%s|%s|%s", 'NCSS Lab Methods',  methods$method_group, m
 # init data.tree from path, attaching additional columns to leaves
 res <- as.Node(methods, pathName = 'path', pathDelimiter = '|')
 # plot(res, output = "visNetwork")
-plot(res, output = "visNetwork")
+# 
 ## salvage relationships by reverse engineering from physical/chemical properties tables
 phys_names <- colnames(SDA_query("SELECT TOP(1) * from lab_physical_properties"))
 idx <- grep("method$", phys_names)
