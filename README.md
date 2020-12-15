@@ -15,7 +15,7 @@
    - [NCSSC Aggregate to Derived Bulk Density and their Dependencies](ncss_bulk_density_derived_graph.html)
 
 
- - [Applied example: Humult-like carbon stocks in MLRA 18 and 22A](bulk_density_ncss.html)
+ - [Applied example: Humult-like carbon stocks in MLRA 18 and 22A](humults.html)
 
 #### Related content:
 
