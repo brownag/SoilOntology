@@ -6,16 +6,16 @@
 
 #### Bulk Density
 
- - [Bulk density in the National Cooperative Soil Survey Databases and beyond](bulk_density_ncss.html)
+ - [Bulk density in the National Cooperative Soil Survey Databases and beyond](https://brownag.github.io/SoilOntology/bulk_density_ncss.html)
 
-   - [NCSSC Database Analyte Graph](ncss_analyte_graph.html)
+   - [NCSSC Database Analyte Graph](https://brownag.github.io/SoilOntology/ncss_analyte_graph.html)
  
-   - [NCSSC Database Procedure Graph](ncss_procedure_graph.html)
+   - [NCSSC Database Procedure Graph](https://brownag.github.io/SoilOntology/ncss_procedure_graph.html)
  
-   - [NCSSC Aggregate to Derived Bulk Density and their Dependencies](ncss_bulk_density_derived_graph.html)
+   - [NCSSC Aggregate to Derived Bulk Density and their Dependencies](https://brownag.github.io/SoilOntology/ncss_bulk_density_derived_graph.html)
 
 
- - [Applied example: Humult-like carbon stocks in MLRA 18 and 22A](humults.html)
+ - [Applied example: Humult-like carbon stocks in MLRA 18 and 22A](https://brownag.github.io/SoilOntology/humults.html)
 
 #### Related content:
 
